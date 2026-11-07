@@ -154,8 +154,11 @@ jobs:
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
 
       # A docker-container builder: the default docker driver can't push by
-      # digest.
+      # digest. The runner is thrown away after the job, so removing the
+      # builder at the end only costs time.
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          cleanup: false
 
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
@@ -206,12 +209,13 @@ jobs:
   # Tags each release's two platform images together as one multi-platform
   # image. Runs even if another release's build failed (fail-fast is off), and
   # fails for a release missing either platform, so nothing is published half
-  # built.
+  # built. Only registry calls, so ubuntu-slim: it has the Docker CLI and
+  # buildx but no daemon, and neither `docker login` nor imagetools needs one.
   merge:
     name: merge ${{ matrix.tag }}
     needs: [version, build]
     if: ${{ !cancelled() && needs.version.outputs.matrix != '[]' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     strategy:
       fail-fast: false
       matrix:
