@@ -35,8 +35,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          major="$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/image-v" --jq '.[].ref | sub("^refs/tags/image-v"; "")' \
-            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 | cut -d. -f1 || true)"
+          refs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/image-v" --jq '.[].ref | sub("^refs/tags/image-v"; "")')"
+          major="$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' <<<"$refs" | sort -V | tail -1 | cut -d. -f1 || true)"
           default="$(jq -r '.options.imageVariant.default' src/dev/devcontainer-template.json)"
           if [ -z "$major" ]; then
             echo "::error::No image release for the template to default to; release the image first"

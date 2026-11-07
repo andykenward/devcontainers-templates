@@ -19,7 +19,7 @@ for dir in \
   fi
 done
 
-# Install the global tools (e.g. a newer Node LTS than the shared volume has)
+# Install the global tools (e.g. a newer Node than the shared volume has)
 # plus anything the project declares in mise.toml / .tool-versions / .nvmrc.
 if command -v mise >/dev/null 2>&1; then
   # Trust only this project's own config (the workspace folder). Configs
