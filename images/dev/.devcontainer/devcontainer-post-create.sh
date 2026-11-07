@@ -27,6 +27,17 @@ if command -v mise >/dev/null 2>&1; then
   mise reshim
 fi
 
+# Claude Code CLI: installed here rather than in the image, so every create or
+# rebuild starts on the newest release; the auto-updater keeps it current after
+# that. Set CLAUDE_CODE_VERSION (containerEnv) to "stable" or an exact version
+# to start on that instead (add DISABLE_AUTOUPDATER=1 to stay on it).
+echo "Installing Claude Code (${CLAUDE_CODE_VERSION:-latest})"
+if curl -fsSL https://claude.ai/install.sh | bash -s -- "${CLAUDE_CODE_VERSION:-latest}"; then
+  claude --version
+else
+  echo "WARNING: Claude Code install failed. Rerun devcontainer-post-create once online." >&2
+fi
+
 # Let git use gh's credentials when gh is logged in.
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   gh auth setup-git

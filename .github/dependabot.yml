@@ -1,5 +1,5 @@
 # Keeps pinned dependencies current. Things installed from "latest" installers
-# (mise, Node LTS, Claude Code, gh, zizmor) are refreshed by the weekly image
+# (mise, Node LTS, gh, zizmor) are refreshed by the weekly image
 # rebuild in .github/workflows/build-image.yaml instead.
 #
 # The cooldown waits a week after a release before proposing it, so a

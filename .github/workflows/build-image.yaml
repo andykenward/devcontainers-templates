@@ -2,7 +2,7 @@ name: Build image
 
 # Builds the prebuilt image (amd64 + arm64) and pushes it to GHCR as
 # ghcr.io/<owner>/devcontainer-dev:latest and :<yyyy-mm-dd>.
-# The weekly schedule picks up new releases of mise, Node LTS, Claude Code and gh.
+# The weekly schedule picks up new releases of mise, Node LTS, gh and zizmor.
 on:
   push:
     branches: [main]

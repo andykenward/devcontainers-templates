@@ -1,4 +1,5 @@
-# Prebuilt dev image: mise (Node.js + any other runtimes), Claude Code CLI, GitHub CLI.
+# Prebuilt dev image: mise (Node.js + any other runtimes), GitHub CLI, zizmor.
+# The Claude Code CLI is installed at create time by devcontainer-post-create.
 # Built and published by .github/workflows/build-image.yaml.
 # Base image is pinned to an exact version so Dependabot can bump it.
 FROM mcr.microsoft.com/devcontainers/base:3.0.12-ubuntu24.04
@@ -61,9 +62,8 @@ RUN set -eux; \
     mise reshim; \
     node --version; npm --version; zizmor --version
 
-# Claude Code CLI (native installer, installs to ~/.local/bin/claude).
-RUN set -eux; \
-    curl -fsSL https://claude.ai/install.sh | bash; \
-    claude --version
+# The Claude Code CLI is not in the image: devcontainer-post-create installs the
+# newest release into ~/.local/bin on every create, so projects never start on a
+# stale version.
 
 USER root
