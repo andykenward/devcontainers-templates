@@ -42,7 +42,13 @@ else
   echo "WARNING: Claude Code install failed. Rerun devcontainer-post-create once online." >&2
 fi
 
-# Let git use gh's credentials when gh is logged in.
+# Let git use gh's credentials for HTTPS remotes when gh is logged in, unless
+# an SSH agent with a key is forwarded (e.g. from 1Password): then git talks to
+# GitHub over SSH and gh's token stays out of git.
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  gh auth setup-git
+  if [ -n "${SSH_AUTH_SOCK:-}" ] && ssh-add -l >/dev/null 2>&1; then
+    echo "SSH agent has a key: leaving git's credential helpers alone"
+  else
+    gh auth setup-git
+  fi
 fi
