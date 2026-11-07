@@ -1,0 +1,90 @@
+name: Upgrade tools
+
+# Daily: moves mise.lock to the newest releases of the tools in mise.toml
+# (`mise lock --bump`), runs lint and the template test with them, and opens
+# or updates a PR when they pass. Dependabot can't read mise files, and this
+# is how security fixes in these tools arrive.
+#
+# PRs opened with GITHUB_TOKEN don't start other workflows, so the checks run
+# here, before the PR is opened; the PR description links to this run.
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upgrade-tools
+  cancel-in-progress: false
+
+env:
+  BRANCH: mise-upgrade
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the mise-upgrade branch
+      pull-requests: write # open or update the PR
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          install: false
+
+      - name: Bump mise.lock
+        id: bump
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mise lock --bump --json > "$RUNNER_TEMP/changes.json"
+          cat "$RUNNER_TEMP/changes.json"
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install bumped tools
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: mise install
+
+      - name: Lint
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: mise run lint
+
+      - name: Test
+        if: steps.bump.outputs.changed == 'true'
+        run: mise run test
+
+      - name: Open or update PR
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          summary="$(jq -r '.[] | "- **\(.name)**: \(.old_versions | join(", ")) → \(.new_versions | join(", "))"' "$RUNNER_TEMP/changes.json")"
+          [ -n "$summary" ] || summary="- Checksums and download URLs refreshed (no version changes)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add mise.lock .mise
+          git commit -q -m "tools: upgrade mise tools" -m "$summary"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
+
+          body="$(printf 'Upgrades the tools pinned in `mise.lock`:\n\n%s\n\nLint and the full template test passed with these versions in [this run](%s).\n\nOpened by the **Upgrade tools** workflow, which updates this PR daily until it is merged.' "$summary" "$RUN_URL")"
+          if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq length)" = "0" ]; then
+            gh pr create --head "$BRANCH" --base main --title "tools: upgrade mise tools" --body "$body"
+          else
+            gh pr edit "$BRANCH" --body "$body"
+          fi

@@ -1,4 +1,12 @@
 # Tools for working on this repo. Installed by `mise install` (runs in postCreate).
+#
+# Exact versions and checksums are pinned in mise.lock, so "latest"/"lts" here
+# only say what `mise lock --bump` moves to. The Upgrade tools workflow does
+# that daily and opens a PR, so new versions only arrive after Test passes.
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64", "linux-arm64"]
+
 [tools]
 node = "lts"
 "npm:@devcontainers/cli" = "latest"
