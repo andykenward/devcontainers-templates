@@ -29,6 +29,12 @@ Log in once (`claude`, `gh auth login`) and every container that uses the same p
 
 To start over, delete a volume, for example `docker volume rm devcontainer-claude`.
 
+## mise security
+
+- **Trust:** on create, mise trusts the project's own config (its `mise.toml`, `.tool-versions` and so on). Any other config, such as a repo you clone inside the project, gets no trust until you run `mise trust` there. Until then, its env, hooks and tasks don't run.
+- **No community plugins:** paranoid mode refuses to install unregistered community plugins, and the `asdf` and `vfox` plugin backends are off. A project that needs them can set `disable_backends = []` in its own `mise.toml`.
+- **Verification:** mise checks checksums, GitHub attestations, SLSA, cosign and npm provenance where tools publish them. For pinned versions, commit a `mise.lock` (see `lockfile` and `locked` in the mise docs).
+
 ## Updating
 
 The image is rebuilt every week. Use **Dev Containers: Rebuild Container** to pull the newest `latest`.
