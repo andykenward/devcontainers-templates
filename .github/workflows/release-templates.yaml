@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # lets the action push template_<id>_<version> git tags
   packages: write
 
 jobs:
