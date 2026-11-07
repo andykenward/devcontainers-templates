@@ -5,7 +5,10 @@
 FROM mcr.microsoft.com/devcontainers/base:3.0.12-ubuntu24.04
 
 ARG USERNAME=vscode
-ARG NODE_VERSION=lts
+# Node major. Pinned so a weekly rebuild can't move projects to a new LTS line
+# under the same image tag. Bump it in a feat(image)!: PR when the next LTS lands
+# (even-numbered majors, each October); the rebuild still picks up 26.x patches.
+ARG NODE_VERSION=26
 
 # --- mise (system install from the official apt repo) -----------------------
 RUN set -eux; \

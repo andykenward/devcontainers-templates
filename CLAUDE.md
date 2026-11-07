@@ -15,3 +15,9 @@ Never edit versions or changelogs by hand (`.release-please-manifest.json`, `ver
 ## Checks
 
 Run `mise run lint` (ShellCheck and zizmor) before pushing, and `mise run test` (image build and template test, needs Docker) when the image, template or test scripts change.
+
+## Image
+
+- The weekly **Build image** run rebuilds the newest release of the current and previous major without the layer cache. That is how the base image's packages, mise, gh, zizmor and Node patch releases update: they are unpinned in the Dockerfile on purpose, since Dependabot can't bump them. Don't pin them, and don't let the scheduled build use the cache.
+- The Node major is pinned (`ARG NODE_VERSION` in the Dockerfile) so a rebuild can't move projects to a new LTS line under the same tag. Move it to the next LTS in a `feat(image)!:` PR.
+- A version tag is a release as last built, not fixed bytes; `<X.Y.Z>-<yyyy-mm-dd>` is that day's build of it, and a same-day rebuild replaces it.

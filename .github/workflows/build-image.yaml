@@ -2,32 +2,46 @@ name: Build image
 
 # Builds the prebuilt image (amd64 + arm64) from a released version and pushes
 # it to GHCR as ghcr.io/<owner>/devcontainer-dev with the tags
-#   <X.Y.Z>, <X.Y>, <X>, latest and <yyyy-mm-dd>.
+#   <X.Y.Z>, <X.Y>, <X>, latest and <X.Y.Z>-<yyyy-mm-dd>.
 #
-# - On release: release.yaml calls this with the new image-v<X.Y.Z> tag.
-# - Weekly: rebuilds the latest image release without the layer cache, picking
-#   up new releases of the base image's packages, mise, Node LTS, gh and
-#   zizmor. The version tags move to the fresh build, so projects on `1` or
-#   `1.2` get security updates without a new release. Unreleased changes on
-#   main are never published.
-# - On demand: builds the given release. The floating tags <X.Y>, <X> and
-#   latest only move to a build that is the newest release of that series, so
-#   rebuilding 1.2.0 after 1.3.0 can't roll `1` or `latest` back.
+# - On release: release.yaml calls this with the new image-v<X.Y.Z> tag. The
+#   build caches from the previous release of the same major.
+# - Weekly: rebuilds the newest release of the current major and of the
+#   previous one, without the layer cache. The Dockerfile installs the base
+#   image's package updates, mise, gh, zizmor and Node patch releases at
+#   whatever version is current, and Dependabot can't bump those, so this is
+#   how they refresh. The version tags move to the fresh build, so projects on
+#   `1` or `1.2` get those updates without a new release, and projects still
+#   on the previous major keep getting them for a while after a breaking
+#   release. Unreleased changes on main are never published.
+# - On demand: rebuilds the given release, or the same two releases as the
+#   weekly run, without the layer cache unless `no-cache` is unticked. The
+#   floating tags <X.Y>, <X> and latest only move to a build that is the
+#   newest release of that series, so rebuilding 1.2.0 after 1.3.0 can't roll
+#   `1` or `latest` back.
 on:
   schedule:
     - cron: "17 4 * * 1"
   workflow_dispatch:
     inputs:
       tag:
-        description: Image release to build (e.g. image-v1.2.0). Empty builds the latest release.
+        description: Image release to build (e.g. image-v1.2.0). Empty builds the newest release of the current and previous major.
         type: string
         default: ""
+      no-cache:
+        description: Skip the layer cache, so the base image's packages, mise, gh, zizmor and Node refresh. Untick to only redo a failed build.
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       tag:
-        description: Image release to build (e.g. image-v1.2.0). Empty builds the latest release.
+        description: Image release to build (e.g. image-v1.2.0). Empty builds the newest release of the current and previous major.
         type: string
         default: ""
+      no-cache:
+        description: Skip the layer cache.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -39,59 +53,96 @@ jobs:
   version:
     runs-on: ubuntu-slim
     outputs:
-      tag: ${{ steps.find.outputs.tag }}
-      version: ${{ steps.find.outputs.version }}
-      image-tags: ${{ steps.find.outputs.image-tags }}
+      # [{ "tag": "image-v1.2.0", "version": "1.2.0", "major": "1", "tags": "1.2.0,1.2.0-2026-11-07,1.2,1,latest" }, ...]
+      matrix: ${{ steps.find.outputs.matrix }}
     steps:
+      # Only the shared script is needed here.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
       - id: find
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: |
-          releases="$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/image-v" --jq '.[].ref | sub("^refs/tags/"; "")' \
-            | grep -E '^image-v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V || true)"
-          if [ -z "$TAG" ]; then
-            TAG="$(tail -1 <<<"$releases")"
+          # Every image-v<X.Y.Z> tag, oldest first.
+          releases="$(.github/scripts/image-releases.sh)"
+
+          # The newest release whose version starts with $1: "1.2.", "1." or ""
+          # for any. A fixed-string match, so the dots are literal; every entry
+          # starts with image-v, which anchors the prefix.
+          newest() { grep -F "image-v$1" <<<"$releases" | tail -1; }
+
+          if [ -n "$TAG" ]; then
+            if ! grep -qxF "$TAG" <<<"$releases"; then
+              echo "::error::'${TAG}' is not an image release (image-v<X.Y.Z> tag)"
+              exit 1
+            fi
+            build="$TAG"
+          else
+            # The newest release of each of the two highest majors.
+            majors="$(for tag in $releases; do version="${tag#image-v}"; echo "${version%%.*}"; done | uniq | tail -2)"
+            build=""
+            for major in $majors; do
+              build+="$(newest "${major}.")"$'\n'
+            done
           fi
-          if [ -z "$TAG" ] && [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
-            echo "::notice::No image release yet, nothing to rebuild"
-            exit 0
-          fi
-          if ! [[ "$TAG" =~ ^image-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "::error::No image release to build (tag: '${TAG}')"
+
+          if [ -z "$build" ]; then
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+              echo "::notice::No image release yet, nothing to rebuild"
+              exit 0
+            fi
+            echo "::error::No image release to build"
             exit 1
           fi
-          version="${BASH_REMATCH[1]}"
 
-          # The release's own version and a dated tag always; a floating tag
-          # only when this release is the newest one it could point at.
-          newest() { grep -E "$1" <<<"$releases" | tail -1; }
-          tags="${version},$(date -u +%Y-%m-%d)"
-          [ "$(newest "^image-v${version%.*}\.")" = "$TAG" ] && tags+=",${version%.*}"
-          [ "$(newest "^image-v${version%%.*}\.")" = "$TAG" ] && tags+=",${version%%.*}"
-          [ "$(newest .)" = "$TAG" ] && tags+=",latest"
-
-          {
-            echo "tag=$TAG"
-            echo "version=$version"
-            echo "image-tags=$tags"
-          } >> "$GITHUB_OUTPUT"
-          echo "Building $TAG, tags: $tags"
+          # Each build gets its own version and a dated tag; a floating tag only
+          # when that release is the newest one it could point at.
+          date="$(date -u +%Y-%m-%d)"
+          matrix="[]"
+          for tag in $build; do
+            version="${tag#image-v}"
+            major="${version%%.*}"
+            tags="${version},${version}-${date}"
+            [ "$(newest "${version%.*}.")" = "$tag" ] && tags+=",${version%.*}"
+            [ "$(newest "${major}.")" = "$tag" ] && tags+=",${major}"
+            [ "$(newest "")" = "$tag" ] && tags+=",latest"
+            matrix="$(jq -c --arg tag "$tag" --arg version "$version" --arg major "$major" --arg tags "$tags" \
+              '. + [{tag: $tag, version: $version, major: $major, tags: $tags}]' <<<"$matrix")"
+            echo "Building $tag, tags: $tags"
+          done
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   build:
+    name: build ${{ matrix.tag }}
     needs: version
-    if: needs.version.outputs.tag != ''
+    if: needs.version.outputs.matrix != '[]'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.version.outputs.matrix) }}
     permissions:
       contents: read
       packages: write # push to GHCR
+    # One build at a time across every run of this workflow. A weekly rebuild
+    # of 1.2.0 and a release build of 1.3.0 running side by side could both
+    # push `1` and `latest`, and whichever finished last would win. The
+    # default queue keeps only one waiting build and cancels the rest, which
+    # would drop a release build queued behind the two weekly ones.
     concurrency:
       group: build-image
       cancel-in-progress: false
+      queue: max
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          ref: ${{ needs.version.outputs.tag }}
+          ref: ${{ matrix.tag }}
           persist-credentials: false
 
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
@@ -105,16 +156,21 @@ jobs:
 
       # IMAGE_VERSION is passed to the Dockerfile as a build arg (see
       # devcontainer.json) for the org.opencontainers.image.version label.
-      # The weekly rebuild skips the layer cache: with it, every RUN layer of
-      # the previous build is reused and nothing inside the image refreshes.
+      # Rebuilds skip the layer cache: with it, every RUN layer of the previous
+      # build is reused and nothing inside the image refreshes. A release build
+      # caches from the release's own tag (a redo), else the newest build of
+      # its major; buildx skips a cache source that doesn't exist. A new major
+      # has neither, so a breaking release starts from a clean build.
       - uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
-          IMAGE_VERSION: ${{ needs.version.outputs.version }}
+          IMAGE_VERSION: ${{ matrix.version }}
         with:
           subFolder: images/dev
           imageName: ${{ env.IMAGE_NAME }}
-          imageTag: ${{ needs.version.outputs.image-tags }}
-          cacheFrom: ${{ env.IMAGE_NAME }}
-          noCache: ${{ github.event_name == 'schedule' }}
+          imageTag: ${{ matrix.tags }}
+          cacheFrom: |
+            ${{ env.IMAGE_NAME }}:${{ matrix.version }}
+            ${{ env.IMAGE_NAME }}:${{ matrix.major }}
+          noCache: ${{ github.event_name == 'schedule' || inputs.no-cache == true }}
           platform: linux/amd64,linux/arm64
           push: always
