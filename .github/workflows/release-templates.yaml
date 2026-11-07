@@ -35,7 +35,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          major="$(.github/scripts/image-releases.sh | tail -1 | sed -E 's/^image-v([0-9]+)\..*/\1/')"
+          # Assigned on its own, so an API error fails the step instead of
+          # reading as "no release" (the default shell has no pipefail).
+          releases="$(.github/scripts/image-releases.sh)"
+          newest="$(tail -1 <<<"$releases")"
+          version="${newest#image-v}"
+          major="${version%%.*}"
           default="$(jq -r '.options.imageVariant.default' src/dev/devcontainer-template.json)"
           if [ -z "$major" ]; then
             echo "::error::No image release for the template to default to; release the image first"

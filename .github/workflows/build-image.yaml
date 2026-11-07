@@ -56,8 +56,11 @@ jobs:
       # [{ "tag": "image-v1.2.0", "version": "1.2.0", "major": "1", "tags": "1.2.0,1.2.0-2026-11-07,1.2,1,latest" }, ...]
       matrix: ${{ steps.find.outputs.matrix }}
     steps:
+      # Only the shared script is needed here.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
           persist-credentials: false
 
       - id: find
@@ -81,8 +84,9 @@ jobs:
             build="$TAG"
           else
             # The newest release of each of the two highest majors.
+            majors="$(for tag in $releases; do version="${tag#image-v}"; echo "${version%%.*}"; done | uniq | tail -2)"
             build=""
-            for major in $(sed -E 's/^image-v([0-9]+)\..*/\1/' <<<"$releases" | uniq | tail -2); do
+            for major in $majors; do
               build+="$(newest "${major}.")"$'\n'
             done
           fi
@@ -155,7 +159,8 @@ jobs:
       # Rebuilds skip the layer cache: with it, every RUN layer of the previous
       # build is reused and nothing inside the image refreshes. A release build
       # caches from the release's own tag (a redo), else the newest build of
-      # its major, else latest; buildx skips a cache source that doesn't exist.
+      # its major; buildx skips a cache source that doesn't exist. A new major
+      # has neither, so a breaking release starts from a clean build.
       - uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
           IMAGE_VERSION: ${{ matrix.version }}
@@ -166,7 +171,6 @@ jobs:
           cacheFrom: |
             ${{ env.IMAGE_NAME }}:${{ matrix.version }}
             ${{ env.IMAGE_NAME }}:${{ matrix.major }}
-            ${{ env.IMAGE_NAME }}:latest
           noCache: ${{ github.event_name == 'schedule' || inputs.no-cache == true }}
           platform: linux/amd64,linux/arm64
           push: always
