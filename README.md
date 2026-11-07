@@ -25,6 +25,8 @@ devcontainer templates apply -t ghcr.io/andykenward/devcontainers-templates/dev
 - **Test** (`test.yaml`): runs on PRs. It builds the image locally, applies the template, runs `test/dev/test.sh`, rebuilds the container and checks that the volumes persisted.
 - **Release templates** (`release-templates.yaml`): runs on pushes to `src/**`. It publishes the templates to GHCR. Bump `version` in `devcontainer-template.json` to release.
 - **Dependabot** (`.github/dependabot.yml`): keeps the base image, devcontainer features and actions up to date each week.
+- **Upgrade tools** (`upgrade-tools.yaml`): runs daily. It bumps the repo's mise tools in `mise.lock` (Dependabot can't read mise files), runs lint and the template test with them, and opens or updates a `mise-upgrade` PR when they pass.
+  New releases wait out a 7-day cooldown (`minimum_release_age` in `mise.toml`). For an urgent security fix, lock the exact version yourself with `mise lock <tool>@<version>` (exact versions skip the cooldown) and open a PR.
 
 After the first publish, set both GHCR packages to **public** under the package settings on GitHub. Otherwise they need `docker login` to pull.
 

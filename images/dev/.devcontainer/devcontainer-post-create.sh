@@ -22,6 +22,9 @@ done
 # Install the global tools (e.g. a newer Node LTS than the shared volume has)
 # plus anything the project declares in mise.toml / .tool-versions / .nvmrc.
 if command -v mise >/dev/null 2>&1; then
+  # Trust only this project's own config (the workspace folder). Configs
+  # anywhere else, such as other repos cloned into the container, still need
+  # `mise trust` before their env, hooks and tasks run.
   mise trust --yes --quiet . 2>/dev/null || true
   mise install --yes
   mise reshim

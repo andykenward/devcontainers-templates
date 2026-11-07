@@ -1,0 +1,137 @@
+name: Upgrade tools
+
+# Daily: moves mise.lock to the newest releases of the tools in mise.toml
+# (`mise lock --bump`), runs lint and the template test with them, and opens
+# or updates a PR when they pass. Dependabot can't read mise files, and this
+# is how security fixes in these tools arrive.
+#
+# PRs opened with GITHUB_TOKEN don't start other workflows, so the checks run
+# here, before the PR is opened; the PR description links to this run.
+#
+# The bump and PR jobs are light and run on ubuntu-slim. The test is test.yaml,
+# called as a reusable workflow (Docker, ubuntu-latest), only on days a version
+# changed. The bumped lock files travel between jobs as an artifact, so the PR
+# contains exactly what was tested.
+#
+# The cooldown is minimum_release_age in mise.toml. For an urgent security fix,
+# lock the exact version yourself (`mise lock <tool>@<version>`, which the
+# cooldown doesn't filter) and open a PR.
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upgrade-tools
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-slim
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          install: false
+
+      - name: Bump mise.lock
+        id: bump
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # Bump only tools whose newest release outside the cooldown is newer
+          # than what's locked: --bump with a cooldown would otherwise move a
+          # tool that was locked inside the cooldown back down.
+          tools=()
+          while IFS=$'\t' read -r name old new; do
+            if [ -z "$old" ] || { [ "$new" != "$old" ] && [ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -1)" = "$new" ]; }; then
+              tools+=("$name")
+            else
+              echo "Skipping $name: $old -> $new would be a downgrade"
+            fi
+          done < <(mise lock --bump --dry-run --json | jq -r '.[] | [.name, (.old_versions[0] // ""), (.new_versions[0] // "")] | @tsv')
+
+          if [ "${#tools[@]}" -gt 0 ]; then
+            echo "Upgrading: ${tools[*]}"
+            mise lock --bump --json "${tools[@]}" > changes.json
+          else
+            echo "[]" > changes.json
+          fi
+          cat changes.json
+          if [ -z "$(git status --porcelain -- mise.lock .mise)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.bump.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bumped-lock
+          path: |
+            mise.lock
+            .mise/
+            changes.json
+          include-hidden-files: true
+          retention-days: 1
+
+  # The same lint and template test that PRs get, run with the bumped lock files.
+  test:
+    needs: bump
+    if: needs.bump.outputs.changed == 'true'
+    uses: $/.github/workflows/test.yaml
+    with:
+      lock-artifact: bumped-lock
+
+  pr:
+    needs: test
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write # push the mise-upgrade branch
+      pull-requests: write # open or update the PR
+    env:
+      BRANCH: mise-upgrade
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bumped-lock
+          path: ${{ runner.temp }}/bumped
+
+      - name: Open or update PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          bumped="$RUNNER_TEMP/bumped"
+          rm -rf .mise
+          cp "$bumped/mise.lock" mise.lock
+          [ -d "$bumped/.mise" ] && cp -R "$bumped/.mise" .mise
+
+          summary="$(jq -r '.[] | "- **\(.name)**: \(.old_versions | join(", ")) → \(.new_versions | join(", "))"' "$bumped/changes.json")"
+          [ -n "$summary" ] || summary="- Checksums and download URLs refreshed (no version changes)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add -A mise.lock .mise
+          git commit -q -m "tools: upgrade mise tools" -m "$summary"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
+
+          body="$(printf 'Upgrades the tools pinned in `mise.lock`:\n\n%s\n\nLint and the full template test passed with these versions in [this run](%s).\n\nOpened by the **Upgrade tools** workflow, which updates this PR daily until it is merged.' "$summary" "$RUN_URL")"
+          if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq length)" = "0" ]; then
+            gh pr create --head "$BRANCH" --base main --title "tools: upgrade mise tools" --body "$body"
+          else
+            gh pr edit "$BRANCH" --body "$body"
+          fi

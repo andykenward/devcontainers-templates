@@ -24,7 +24,6 @@ RUN set -eux; \
 # persists Claude Code's login, settings and history across rebuilds.
 ENV CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude \
     MISE_DATA_DIR=/home/${USERNAME}/.local/share/mise \
-    MISE_TRUSTED_CONFIG_PATHS=/workspaces \
     MISE_NODE_COREPACK=true \
     PATH=/home/${USERNAME}/.local/bin:/home/${USERNAME}/.local/share/mise/shims:${PATH}
 
@@ -56,7 +55,17 @@ RUN set -eux; \
 # Node.js, and zizmor for auditing GitHub Actions workflows. They live in
 # ~/.config/mise/config.toml, so postCreate's `mise install` also puts them on
 # the shared mise volume.
+#
+# Hardening, in the same global config:
+# - paranoid "plugins": refuse to install unregistered community plugins.
+# - disable_backends: the asdf and vfox plugin backends run community install
+#   scripts. A trusted project that needs them can set disable_backends = []
+#   in its own mise.toml.
+# No config path is trusted automatically: postCreate trusts the project's own
+# config, and anything else (e.g. a repo cloned to look at) asks first.
 RUN set -eux; \
+    mise settings set paranoid plugins; \
+    mise settings set disable_backends asdf,vfox; \
     mise settings set idiomatic_version_file_enable_tools node; \
     mise use --global "node@${NODE_VERSION}" zizmor@latest; \
     mise reshim; \
