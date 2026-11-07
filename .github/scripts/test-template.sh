@@ -18,6 +18,8 @@ devcontainer_cleanup() {
 }
 
 cp -R "$src/." "$workspace/"
+# mktemp -d is 0700; the container user may have a different UID (e.g. when run as root).
+chmod 755 "$workspace"
 rm -f "$workspace/devcontainer-template.json" "$workspace/README.md" "$workspace/NOTES.md"
 mkdir -p "$workspace/test-project"
 cp -R "$root/test/$id/." "$workspace/test-project/"
