@@ -1,0 +1,33 @@
+# Keeps pinned dependencies current. Things installed from "latest" installers
+# (mise, Node LTS, Claude Code, gh) are refreshed by the weekly image rebuild in
+# .github/workflows/build-image.yaml instead.
+version: 2
+updates:
+  # Base image in the Dockerfile.
+  - package-ecosystem: docker
+    directory: /images/dev/.devcontainer
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "image"
+
+  # Dev container features used to build the image.
+  - package-ecosystem: devcontainers
+    directories:
+      - /images/dev
+      - /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "image"
+
+  # GitHub Actions used by the workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"

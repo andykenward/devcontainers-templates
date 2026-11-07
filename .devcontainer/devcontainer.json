@@ -1,0 +1,43 @@
+// Dev container for working on this repository.
+// Builds from the same Dockerfile as the published image (so it works before the
+// image exists) and adds Docker-in-Docker for building and testing the image
+// and templates. Tools such as the devcontainer CLI come from ../mise.toml.
+{
+  "name": "devcontainers-templates",
+  "build": {
+    "dockerfile": "../images/dev/.devcontainer/Dockerfile",
+    "context": "../images/dev/.devcontainer"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "remoteUser": "vscode",
+
+  // Same persistence as the template: shared logins and tool installs,
+  // per-project history and extensions.
+  "mounts": [
+    "source=devcontainer-claude,target=/home/vscode/.claude,type=volume",
+    "source=devcontainer-gh,target=/home/vscode/.config/gh,type=volume",
+    "source=devcontainer-mise,target=/home/vscode/.local/share/mise,type=volume",
+    "source=${devcontainerId}-history,target=/commandhistory,type=volume",
+    "source=${devcontainerId}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume"
+  ],
+
+  "postCreateCommand": "devcontainer-post-create",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "github.vscode-pull-request-github",
+        "github.vscode-github-actions",
+        "ms-azuretools.vscode-containers",
+        "timonwong.shellcheck"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  }
+}

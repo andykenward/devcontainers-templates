@@ -1,0 +1,27 @@
+name: Release templates
+
+# Publishes every template under src/ to ghcr.io/<owner>/<repo>/<id> as an OCI
+# artifact. Bump "version" in devcontainer-template.json to release a change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: devcontainers/action@v1
+        with:
+          publish-templates: "true"
+          base-path-to-templates: ./src
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

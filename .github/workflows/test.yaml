@@ -1,0 +1,33 @@
+name: Test
+
+# Builds the image locally (amd64) and runs the template against it, including
+# a rebuild to check that the volumes persist.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+
+      - run: npm install -g @devcontainers/cli
+
+      - name: Build image locally
+        run: |
+          devcontainer build \
+            --workspace-folder images/dev \
+            --image-name ghcr.io/${{ github.repository_owner }}/devcontainer-dev:latest
+
+      - name: Test template
+        run: .github/scripts/test-template.sh dev

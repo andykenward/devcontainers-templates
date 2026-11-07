@@ -1,0 +1,16 @@
+# Tools for working on this repo. Installed by `mise install` (runs in postCreate).
+[tools]
+node = "lts"
+"npm:@devcontainers/cli" = "latest"
+shellcheck = "latest"
+
+[tasks.test]
+description = "Build the image locally and test the dev template"
+run = """
+devcontainer build --workspace-folder images/dev --image-name ghcr.io/andykenward/devcontainer-dev:latest
+.github/scripts/test-template.sh dev
+"""
+
+[tasks.lint]
+description = "Shellcheck all scripts"
+run = "shellcheck images/dev/.devcontainer/*.sh test/*/test.sh .github/scripts/*.sh"

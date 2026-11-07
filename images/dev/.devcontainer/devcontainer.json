@@ -1,0 +1,26 @@
+{
+  // Build definition for the prebuilt image ghcr.io/andykenward/devcontainer-dev.
+  // Features and customizations here are baked into the image (and its
+  // devcontainer.metadata label), so the template that uses it stays thin.
+  "name": "dev image",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "github.vscode-pull-request-github",
+        "github.vscode-github-actions"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  }
+}

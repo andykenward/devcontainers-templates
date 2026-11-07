@@ -1,0 +1,25 @@
+// For format details, see https://aka.ms/devcontainer.json.
+{
+  "name": "Dev",
+  "image": "ghcr.io/andykenward/devcontainer-dev:${templateOption:imageVariant}",
+
+  // Named volumes survive container rebuilds.
+  //  - Shared across every project with the same prefix: Claude Code login and
+  //    settings, GitHub CLI login, mise tool installs.
+  //  - Per project: shell history and VS Code server extensions.
+  "mounts": [
+    "source=${templateOption:volumePrefix}-claude,target=/home/vscode/.claude,type=volume",
+    "source=${templateOption:volumePrefix}-gh,target=/home/vscode/.config/gh,type=volume",
+    "source=${templateOption:volumePrefix}-mise,target=/home/vscode/.local/share/mise,type=volume",
+    "source=${devcontainerId}-history,target=/commandhistory,type=volume",
+    "source=${devcontainerId}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume"
+  ],
+
+  // Fixes volume ownership, runs `mise install` for the project's tools and
+  // wires git up to gh credentials when logged in.
+  "postCreateCommand": "devcontainer-post-create"
+
+  // Add project-specific features, ports and extensions below.
+  // "forwardPorts": [3000],
+  // "customizations": { "vscode": { "extensions": [] } }
+}
