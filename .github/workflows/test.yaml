@@ -19,6 +19,13 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels that PR's run still in progress: only the newest
+# commit's checks count. Other runs (main, manual, called by upgrade-tools)
+# each get their own group, so they are never cancelled or held back.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lint:
     runs-on: ubuntu-slim
