@@ -6,6 +6,9 @@
 [settings]
 lockfile = true
 lockfile_platforms = ["linux-x64", "linux-arm64"]
+# Cooldown, like Dependabot's: only resolve "latest"/"lts" to releases at least
+# 7 days old, so a compromised or broken release has time to be pulled.
+minimum_release_age = "7d"
 
 [tools]
 node = "lts"

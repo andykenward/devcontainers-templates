@@ -13,18 +13,17 @@ name: Upgrade tools
 # changed. The bumped lock files travel between jobs as an artifact, so the PR
 # contains exactly what was tested.
 #
-# Like Dependabot's cooldown, a release must be 7 days old before it's picked
-# up, so a compromised or broken release has time to be caught and pulled. For
-# an urgent security fix, run it manually with minimum-release-age 0.
+# The cooldown is minimum_release_age in mise.toml. For an urgent security fix,
+# run this manually with minimum-release-age 0 to override it.
 on:
   schedule:
     - cron: "41 5 * * *"
   workflow_dispatch:
     inputs:
       minimum-release-age:
-        description: Only use releases at least this old (e.g. 7d, 2w, a date like 2026-11-01, or 0 for none)
+        description: Override mise.toml's minimum_release_age (e.g. 2w, a date like 2026-11-01, or 0 for none). Empty uses mise.toml.
         type: string
-        default: 7d
+        default: ""
 
 permissions:
   contents: read
@@ -51,12 +50,12 @@ jobs:
         id: bump
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # Empty on scheduled runs, so the default applies.
-          MIN_AGE: ${{ inputs.minimum-release-age || '7d' }}
+          # Empty on scheduled runs, so mise.toml's minimum_release_age applies.
+          MIN_AGE: ${{ inputs.minimum-release-age }}
         run: |
           case "$MIN_AGE" in
-            0|0d) age_args=() ;;
-            [0-9]*[dwmy]|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) age_args=(--minimum-release-age "$MIN_AGE") ;;
+            "") age_args=() ;;
+            0|0d|[0-9]*[dwmy]|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) age_args=(--minimum-release-age "$MIN_AGE") ;;
             *) echo "::error::invalid minimum-release-age: $MIN_AGE"; exit 1 ;;
           esac
 
