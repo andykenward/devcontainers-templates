@@ -8,6 +8,7 @@ PRs are squash-merged with the PR title as the commit message, and release-pleas
 - `docs`, `chore`, `refactor`, `test`, `build`, `ci`, `style`: no release.
 - A change only releases the component whose files it touches: `images/dev/` (image) or `src/dev/` (template). Use scopes `image`, `template`, `ci`, `deps` or `repo` to say which part changed.
 - Write the description in the imperative and lowercase, as it reads in the changelog: `feat(image): add zizmor`.
+- No `<` or `>` in PR titles, even in backticks. release-please re-parses the Release PR body as HTML after decoding it, so `<X.Y.Z>` turns into a tag: it vanishes from the notes and can swallow the next component's section, which then isn't released (image 1.1.0 / template 1.2.0 hit this). Write `X.Y.Z-date` instead.
 - A breaking image change (`feat(image)!:`) must also move the template's `imageVariant` default and proposals in `src/dev/devcontainer-template.json` to the new major, in the same PR. Release templates refuses to publish a template whose default is not the newest image major.
 
 Never edit versions or changelogs by hand (`.release-please-manifest.json`, `version` in `src/dev/devcontainer-template.json`, `images/dev/CHANGELOG.md`, `docs/changelogs/`). Merging the Release PR updates them.
