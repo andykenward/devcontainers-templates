@@ -5,7 +5,11 @@
   "name": "dev image",
   "build": {
     "dockerfile": "Dockerfile",
-    "context": "."
+    "context": ".",
+    "args": {
+      // Set by build-image.yaml from the release; "dev" otherwise.
+      "IMAGE_VERSION": "${localEnv:IMAGE_VERSION:dev}"
+    }
   },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "aa45f02451bde458dd3fbf9990aea32f5536058d",
+  "include-component-in-tag": true,
+  "include-v-in-tag": true,
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance Improvements" },
+    { "type": "deps", "section": "Dependencies" },
+    { "type": "revert", "section": "Reverts" },
+    { "type": "docs", "section": "Documentation", "hidden": true },
+    { "type": "chore", "section": "Miscellaneous Chores", "hidden": true },
+    { "type": "refactor", "section": "Code Refactoring", "hidden": true },
+    { "type": "test", "section": "Tests", "hidden": true },
+    { "type": "build", "section": "Build System", "hidden": true },
+    { "type": "ci", "section": "Continuous Integration", "hidden": true },
+    { "type": "style", "section": "Styles", "hidden": true }
+  ],
+  "packages": {
+    "images/dev": {
+      "release-type": "simple",
+      "component": "image",
+      "initial-version": "1.0.0"
+    },
+    "src/dev": {
+      "release-type": "simple",
+      "component": "template",
+      "changelog-path": "/docs/changelogs/template-dev.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "devcontainer-template.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}

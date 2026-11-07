@@ -1,0 +1,39 @@
+name: PR title
+
+# PRs are squash-merged with the PR title as the commit message, so the title
+# is what release-please reads to version and describe changes. It must follow
+# Conventional Commits: <type>(<optional scope>)<optional !>: <description>
+#
+# Types that make a release (when the PR touches images/dev or src/dev):
+#   feat (minor), fix, perf, deps, revert (patch); add ! for a breaking change.
+# Types that don't: docs, chore, refactor, test, build, ci, style.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-slim
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@2252a14e810aa9b85c2d560bd7070c802206ecf6 # v6.1.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            deps
+            revert
+            docs
+            chore
+            refactor
+            test
+            build
+            ci
+            style

@@ -1,9 +1,14 @@
+# yaml-language-server: $schema=https://json.schemastore.org/dependabot-2.0.json
+#
 # Keeps pinned dependencies current. Things installed from "latest" installers
 # (mise, Node LTS, gh, zizmor) are refreshed by the weekly image
 # rebuild in .github/workflows/build-image.yaml instead.
 #
 # The cooldown waits a week after a release before proposing it, so a
 # compromised or broken release has time to be caught and pulled.
+#
+# Commit prefixes are Conventional Commit types (see pr-title.yaml): "deps"
+# updates to the image make a patch release of it; "ci" never releases.
 version: 2
 updates:
   # Base image in the Dockerfile.
@@ -14,7 +19,7 @@ updates:
     cooldown:
       default-days: 7
     commit-message:
-      prefix: "image"
+      prefix: "deps"
 
   # Dev container features used to build the image.
   - package-ecosystem: devcontainers
@@ -26,7 +31,7 @@ updates:
     cooldown:
       default-days: 7
     commit-message:
-      prefix: "image"
+      prefix: "deps"
 
   # GitHub Actions used by the workflows (pinned to commit hashes).
   - package-ecosystem: github-actions

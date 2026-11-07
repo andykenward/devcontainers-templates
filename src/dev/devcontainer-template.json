@@ -10,9 +10,9 @@
   "options": {
     "imageVariant": {
       "type": "string",
-      "description": "Prebuilt image tag (latest, or a dated tag like 2026-11-07 to pin):",
-      "proposals": ["latest"],
-      "default": "latest"
+      "description": "Prebuilt image tag: a major version (1) gets compatible updates only; also 1.2, 1.2.3, latest or a dated tag like 2026-11-07:",
+      "proposals": ["1", "latest"],
+      "default": "1"
     },
     "volumePrefix": {
       "type": "string",

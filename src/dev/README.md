@@ -12,7 +12,7 @@ A thin template on top of the prebuilt image `ghcr.io/andykenward/devcontainer-d
 
 | Option | Description | Default |
 | --- | --- | --- |
-| `imageVariant` | Image tag: `latest`, or a dated tag such as `2026-11-07` to pin | `latest` |
+| `imageVariant` | Image tag. A major version (`1`) gets compatible releases and the weekly rebuilds, but no breaking changes. Also `1.2` or `1.2.3` to pin further, `latest`, or a dated build such as `2026-11-07` | `1` |
 | `volumePrefix` | Prefix for the shared volumes. Projects with the same prefix share logins and tool installs | `devcontainer` |
 
 ## What persists across rebuilds
@@ -37,7 +37,7 @@ To start over, delete a volume, for example `docker volume rm devcontainer-claud
 
 ## Updating
 
-The image is rebuilt every week. Use **Dev Containers: Rebuild Container** to pull the newest `latest`.
+The image is rebuilt every week from its latest release, and its version tags move to the new build. Use **Dev Containers: Rebuild Container** to pull it. A breaking image change gets a new major version: switch `1` to `2` in `devcontainer.json` when you are ready. See the [image changelog](https://github.com/andykenward/devcontainers-templates/blob/main/images/dev/CHANGELOG.md).
 
 ### Claude Code versions
 

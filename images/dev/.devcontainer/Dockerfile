@@ -76,3 +76,13 @@ RUN set -eux; \
 # stale version.
 
 USER root
+
+# Labels last: IMAGE_VERSION changes every release, and anything that uses a
+# changed ARG (and every RUN after it) misses the layer cache. Here it only
+# touches this metadata layer, so the cached installs above are reused.
+# IMAGE_VERSION is passed by build-image.yaml; "dev" for local and test builds.
+ARG IMAGE_VERSION=dev
+LABEL org.opencontainers.image.title="devcontainer-dev" \
+      org.opencontainers.image.description="Dev container image: mise, GitHub CLI, zizmor; Claude Code installed on create" \
+      org.opencontainers.image.source="https://github.com/andykenward/devcontainers-templates" \
+      org.opencontainers.image.version="${IMAGE_VERSION}"

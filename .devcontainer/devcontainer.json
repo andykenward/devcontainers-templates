@@ -33,7 +33,10 @@
         "github.vscode-pull-request-github",
         "github.vscode-github-actions",
         "ms-azuretools.vscode-containers",
-        "timonwong.shellcheck"
+        "timonwong.shellcheck",
+        // Validate mise.toml (#:schema) and YAML files (yaml-language-server).
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh"
