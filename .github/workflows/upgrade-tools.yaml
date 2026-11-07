@@ -12,10 +12,19 @@ name: Upgrade tools
 # called as a reusable workflow (Docker, ubuntu-latest), only on days a version
 # changed. The bumped lock files travel between jobs as an artifact, so the PR
 # contains exactly what was tested.
+#
+# Like Dependabot's cooldown, a release must be 7 days old before it's picked
+# up, so a compromised or broken release has time to be caught and pulled. For
+# an urgent security fix, run it manually with minimum-release-age 0.
 on:
   schedule:
     - cron: "41 5 * * *"
   workflow_dispatch:
+    inputs:
+      minimum-release-age:
+        description: Only use releases at least this old (e.g. 7d, 2w, a date like 2026-11-01, or 0 for none)
+        type: string
+        default: 7d
 
 permissions:
   contents: read
@@ -42,8 +51,33 @@ jobs:
         id: bump
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # Empty on scheduled runs, so the default applies.
+          MIN_AGE: ${{ inputs.minimum-release-age || '7d' }}
         run: |
-          mise lock --bump --json > changes.json
+          case "$MIN_AGE" in
+            0|0d) age_args=() ;;
+            [0-9]*[dwmy]|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) age_args=(--minimum-release-age "$MIN_AGE") ;;
+            *) echo "::error::invalid minimum-release-age: $MIN_AGE"; exit 1 ;;
+          esac
+
+          # Bump only tools whose newest release outside the cooldown is newer
+          # than what's locked: --bump with a cooldown would otherwise move a
+          # tool that was locked inside the cooldown back down.
+          tools=()
+          while IFS=$'\t' read -r name old new; do
+            if [ -z "$old" ] || { [ "$new" != "$old" ] && [ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -1)" = "$new" ]; }; then
+              tools+=("$name")
+            else
+              echo "Skipping $name: $old -> $new would be a downgrade"
+            fi
+          done < <(mise lock --bump --dry-run --json "${age_args[@]}" | jq -r '.[] | [.name, (.old_versions[0] // ""), (.new_versions[0] // "")] | @tsv')
+
+          if [ "${#tools[@]}" -gt 0 ]; then
+            echo "Upgrading: ${tools[*]}"
+            mise lock --bump --json "${age_args[@]}" "${tools[@]}" > changes.json
+          else
+            echo "[]" > changes.json
+          fi
           cat changes.json
           if [ -z "$(git status --porcelain -- mise.lock .mise)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
