@@ -5,6 +5,7 @@ A thin template on top of the prebuilt image `ghcr.io/andykenward/devcontainer-d
 - **mise**: manages Node.js (LTS by default, with corepack for pnpm and yarn) and any other runtime. A project's `mise.toml`, `.tool-versions`, `.nvmrc` or `.node-version` is installed on create.
 - **Claude Code CLI** (`claude`) and the Claude Code VS Code extension
 - **GitHub CLI** (`gh`)
+- **zizmor**: audits GitHub Actions workflows for security problems (`zizmor .`)
 - zsh with Oh My Zsh, git, and the usual base image tools
 
 ## Options
