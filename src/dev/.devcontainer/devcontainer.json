@@ -5,11 +5,13 @@
 
   // Named volumes survive container rebuilds.
   //  - Shared across every project with the same prefix: Claude Code login and
-  //    settings, GitHub CLI login, mise tool installs.
+  //    settings, GitHub CLI login, git config (identity, commit signing),
+  //    mise tool installs.
   //  - Per project: shell history and VS Code server extensions.
   "mounts": [
     "source=${templateOption:volumePrefix}-claude,target=/home/vscode/.claude,type=volume",
     "source=${templateOption:volumePrefix}-gh,target=/home/vscode/.config/gh,type=volume",
+    "source=${templateOption:volumePrefix}-git,target=/home/vscode/.config/git,type=volume",
     "source=${templateOption:volumePrefix}-mise,target=/home/vscode/.local/share/mise,type=volume",
     "source=${devcontainerId}-history,target=/commandhistory,type=volume",
     "source=${devcontainerId}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume"

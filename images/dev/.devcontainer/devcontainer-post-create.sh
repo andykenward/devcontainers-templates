@@ -10,6 +10,7 @@ gid="$(id -g)"
 for dir in \
   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" \
   "$HOME/.config/gh" \
+  "$HOME/.config/git" \
   "${MISE_DATA_DIR:-$HOME/.local/share/mise}" \
   "$HOME/.vscode-server/extensions" \
   /commandhistory; do

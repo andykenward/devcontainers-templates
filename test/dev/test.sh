@@ -43,7 +43,7 @@ check "mise asdf/vfox backends disabled" mise_setting_is disable_backends '["asd
 check "no auto-trusted config paths"     no_auto_trust
 check "config outside the project is not trusted" untrusted_config_ignored
 
-for dir in "$HOME/.claude" "$HOME/.config/gh" "$HOME/.local/share/mise" \
+for dir in "$HOME/.claude" "$HOME/.config/gh" "$HOME/.config/git" "$HOME/.local/share/mise" \
            "$HOME/.vscode-server/extensions" /commandhistory; do
   check "writable $dir" bash -c "touch '$dir/.write-test' && rm '$dir/.write-test'"
 done

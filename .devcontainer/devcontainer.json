@@ -19,6 +19,7 @@
   "mounts": [
     "source=devcontainer-claude,target=/home/vscode/.claude,type=volume",
     "source=devcontainer-gh,target=/home/vscode/.config/gh,type=volume",
+    "source=devcontainer-git,target=/home/vscode/.config/git,type=volume",
     "source=devcontainer-mise,target=/home/vscode/.local/share/mise,type=volume",
     "source=${devcontainerId}-history,target=/commandhistory,type=volume",
     "source=${devcontainerId}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume"
