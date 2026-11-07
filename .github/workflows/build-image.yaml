@@ -56,16 +56,17 @@ jobs:
       # [{ "tag": "image-v1.2.0", "version": "1.2.0", "major": "1", "tags": "1.2.0,1.2.0-2026-11-07,1.2,1,latest" }, ...]
       matrix: ${{ steps.find.outputs.matrix }}
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
       - id: find
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: |
-          # Every image-v<X.Y.Z> tag, oldest first. The API call is kept apart
-          # from the filter so an API error fails the job (grep exits 1 when
-          # there is simply no release yet, which is fine).
-          refs="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/image-v" --jq '.[].ref | sub("^refs/tags/"; "")')"
-          releases="$(grep -E '^image-v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$refs" | sort -V || true)"
+          # Every image-v<X.Y.Z> tag, oldest first.
+          releases="$(.github/scripts/image-releases.sh)"
 
           # The newest release whose version starts with $1: "1.2.", "1." or ""
           # for any. A fixed-string match, so the dots are literal; every entry
@@ -120,18 +121,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # One build at a time, in a group shared by every run of this workflow.
-      # Two builds side by side could both push `1` or `latest`, and the one
-      # to finish last would win even if it is the older release.
-      max-parallel: 1
       matrix:
         include: ${{ fromJSON(needs.version.outputs.matrix) }}
     permissions:
       contents: read
       packages: write # push to GHCR
+    # One build at a time across every run of this workflow. A weekly rebuild
+    # of 1.2.0 and a release build of 1.3.0 running side by side could both
+    # push `1` and `latest`, and whichever finished last would win. The
+    # default queue keeps only one waiting build and cancels the rest, which
+    # would drop a release build queued behind the two weekly ones.
     concurrency:
       group: build-image
       cancel-in-progress: false
+      queue: max
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
