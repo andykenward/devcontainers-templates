@@ -42,7 +42,7 @@ The Dockerfile pins the base image tag and the Node major, but installs the base
 
 Two things follow from that:
 
-- A version tag is not a fixed build. `1.0.0` means release 1.0.0 as last built. To pin an exact build, use its dated tag, such as `1.2.3-2026-11-07`.
+- A version tag is not a fixed build. `1.0.0` means release 1.0.0 as last built. To pin an exact build, use its dated tag, such as `1.2.3-2026-11-07`. A rebuild of the same release on the same day replaces it.
 - `1` promises no breaking change to the image itself. A rebuild can still move mise or zizmor to a new major, since those follow their own releases. Node is pinned to a major so a new LTS line only arrives with a new image major.
 
 ## Workflows
