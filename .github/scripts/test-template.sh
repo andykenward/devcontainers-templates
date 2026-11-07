@@ -46,12 +46,12 @@ exec_in() { devcontainer exec --workspace-folder "$workspace" "$@"; }
 up
 exec_in bash ./test-project/test.sh
 # shellcheck disable=SC2016 # expand inside the container, not here
-exec_in bash -c 'echo persisted > "$CLAUDE_CONFIG_DIR/.persist-test" && echo persisted > /commandhistory/.persist-test'
+exec_in bash -c 'echo persisted > "$CLAUDE_CONFIG_DIR/.persist-test" && echo persisted > /commandhistory/.persist-test && git config --file "$HOME/.config/git/config" test.persisted yes'
 
 echo "--- rebuilding container to check persistence"
 up --remove-existing-container
 # shellcheck disable=SC2016 # expand inside the container, not here
-exec_in bash -c 'grep -q persisted "$CLAUDE_CONFIG_DIR/.persist-test" && grep -q persisted /commandhistory/.persist-test'
+exec_in bash -c 'grep -q persisted "$CLAUDE_CONFIG_DIR/.persist-test" && grep -q persisted /commandhistory/.persist-test && [ "$(git config --get test.persisted)" = yes ]'
 echo "✅ volumes persisted across rebuild"
 
 devcontainer_cleanup

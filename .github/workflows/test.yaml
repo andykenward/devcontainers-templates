@@ -33,11 +33,7 @@ jobs:
           name: ${{ inputs.lock-artifact }}
 
       # Installs the tools in mise.toml and runs the same lint task as locally.
-      # minimum_release_age is the 7-day cooldown from mise.toml, applied to
-      # the mise binary itself (the action's default is 24h).
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
-        with:
-          minimum_release_age: 7d
 
       # GH_TOKEN turns on zizmor's online audits (known-vulnerable actions etc.).
       - run: mise run lint
@@ -58,8 +54,6 @@ jobs:
 
       # Provides the devcontainer CLI from mise.toml.
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
-        with:
-          minimum_release_age: 7d
 
       - name: Build image locally
         run: |

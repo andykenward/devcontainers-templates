@@ -4,6 +4,12 @@
 # Exact versions and checksums are pinned in mise.lock, so "latest"/"lts" here
 # only say what `mise lock --bump` moves to. The Upgrade tools workflow does
 # that daily and opens a PR, so new versions only arrive after Test passes.
+
+# mise.lock is lockfile format 4, which older mise can't read. Raise this when
+# a newer mise writes a newer format, so an old mise says to upgrade instead of
+# failing to parse the lockfile.
+min_version = "2026.11.1"
+
 [settings]
 lockfile = true
 lockfile_platforms = ["linux-x64", "linux-arm64"]

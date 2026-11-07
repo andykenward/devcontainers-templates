@@ -21,11 +21,24 @@ A thin template on top of the prebuilt image `ghcr.io/andykenward/devcontainer-d
 | --- | --- | --- |
 | `<prefix>-claude` | `~/.claude` (`CLAUDE_CONFIG_DIR`, which includes `.claude.json`) | shared |
 | `<prefix>-gh` | `~/.config/gh` | shared |
+| `<prefix>-git` | `~/.config/git` (git's own config file, `~/.config/git/config`) | shared |
 | `<prefix>-mise` | `~/.local/share/mise` (installed runtimes) | shared |
 | `<devcontainerId>-history` | `/commandhistory` (bash and zsh history) | per project |
 | `<devcontainerId>-vscode-extensions` | `~/.vscode-server/extensions` | per project |
 
 Log in once (`claude`, `gh auth login`) and every container that uses the same prefix stays logged in.
+
+Git settings work the same way. Write them to `~/.config/git/config` instead of `~/.gitconfig`, which the container recreates on every rebuild. For example, to sign commits with an SSH key from a forwarded agent (such as 1Password's):
+
+```sh
+git config --file ~/.config/git/config user.name "Your Name"
+git config --file ~/.config/git/config user.email "you@example.com"
+git config --file ~/.config/git/config gpg.format ssh
+git config --file ~/.config/git/config user.signingkey "key::$(ssh-add -L | head -1)"
+git config --file ~/.config/git/config commit.gpgsign true
+```
+
+`~/.gitconfig` is read after `~/.config/git/config`, so anything VS Code copies there from your host's `~/.gitconfig` wins. In particular, a host `gpg.ssh.program` that points at a macOS app breaks signing in the container. Remove it from the host config or override it in `~/.gitconfig`.
 
 To start over, delete a volume, for example `docker volume rm devcontainer-claude`.
 
