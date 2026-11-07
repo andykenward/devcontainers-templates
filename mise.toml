@@ -1,3 +1,4 @@
+#:schema https://mise.jdx.dev/schema/mise.json
 # Tools for working on this repo. Installed by `mise install` (runs in postCreate).
 #
 # Exact versions and checksums are pinned in mise.lock, so "latest"/"lts" here
@@ -26,7 +27,7 @@ zizmor = "latest"
 [tasks.test]
 description = "Build the image locally and test the dev template"
 run = """
-devcontainer build --workspace-folder images/dev --image-name ghcr.io/andykenward/devcontainer-dev:latest
+devcontainer build --workspace-folder images/dev --image-name ghcr.io/andykenward/devcontainer-dev:local
 .github/scripts/test-template.sh dev
 """
 

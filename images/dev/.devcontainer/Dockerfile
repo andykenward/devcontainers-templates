@@ -6,6 +6,13 @@ FROM mcr.microsoft.com/devcontainers/base:3.0.12-ubuntu24.04
 
 ARG USERNAME=vscode
 ARG NODE_VERSION=lts
+# Release version, passed by build-image.yaml; "dev" for local and test builds.
+ARG IMAGE_VERSION=dev
+
+LABEL org.opencontainers.image.title="devcontainer-dev" \
+      org.opencontainers.image.description="Dev container image: mise, GitHub CLI, zizmor; Claude Code installed on create" \
+      org.opencontainers.image.source="https://github.com/andykenward/devcontainers-templates" \
+      org.opencontainers.image.version="${IMAGE_VERSION}"
 
 # --- mise (system install from the official apt repo) -----------------------
 RUN set -eux; \

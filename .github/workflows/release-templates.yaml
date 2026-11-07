@@ -1,31 +1,36 @@
 name: Release templates
 
 # Publishes every template under src/ to ghcr.io/<owner>/<repo>/<id> as an OCI
-# artifact. Bump "version" in devcontainer-template.json to release a change.
+# artifact, at the version in its devcontainer-template.json. Versions already
+# published are skipped.
+#
+# release.yaml calls this when release-please releases the template, so the
+# version, changelog and git tag come from the release. Run it manually to
+# republish.
 on:
-  push:
-    branches: [main]
-    paths:
-      - src/**
   workflow_dispatch:
+  workflow_call:
 
 permissions:
-  contents: write # lets the action create template_<id>_<version> git tags
-  packages: write
+  contents: read
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  publish:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      packages: write # push to GHCR
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
 
-      # Tags through the GitHub API with GITHUB_TOKEN, so the checkout doesn't
-      # need to keep credentials.
+      # release-please tags releases (template-v<X.Y.Z>), so the action's own
+      # template_<id>_<version> tags are turned off.
       - uses: devcontainers/action@bef2cf2d1a019b00b45e184f83035e01bd1972f3 # v1.4.4
         with:
           publish-templates: "true"
           base-path-to-templates: ./src
+          disable-repo-tagging: "true"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

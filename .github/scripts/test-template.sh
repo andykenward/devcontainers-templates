@@ -24,9 +24,12 @@ rm -f "$workspace/devcontainer-template.json" "$workspace/README.md" "$workspace
 mkdir -p "$workspace/test-project"
 cp -R "$root/test/$id/." "$workspace/test-project/"
 
-# Substitute ${templateOption:x} with each option's default.
+# Substitute ${templateOption:x} with each option's default, except the image
+# tag: the test runs against the image built locally as :local (override with
+# IMAGE_TAG), not a published one.
 config="$workspace/.devcontainer/devcontainer.json"
 while IFS=$'\t' read -r name default; do
+  [ "$name" = imageVariant ] && default="${IMAGE_TAG:-local}"
   sed -i "s|\${templateOption:$name}|$default|g" "$config"
 done < <(jq -r '.options // {} | to_entries[] | [.key, (.value.default | tostring)] | @tsv' "$src/devcontainer-template.json")
 

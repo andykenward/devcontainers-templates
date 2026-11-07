@@ -5,8 +5,11 @@ name: Upgrade tools
 # or updates a PR when they pass. Dependabot can't read mise files, and this
 # is how security fixes in these tools arrive.
 #
-# PRs opened with GITHUB_TOKEN don't start other workflows, so the checks run
-# here, before the PR is opened; the PR description links to this run.
+# The checks run here, before the PR is opened; the PR description links to
+# this run. PRs opened with GITHUB_TOKEN don't start other workflows, so with a
+# GitHub App (vars.BOT_APP_CLIENT_ID and secrets.BOT_APP_PRIVATE_KEY) the PR is
+# pushed and opened with the App's token instead, and gets the normal PR checks
+# (Test, PR title) too.
 #
 # The bump and PR jobs are light and run on ubuntu-slim. The test is test.yaml,
 # called as a reusable workflow (Docker, ubuntu-latest), only on days a version
@@ -109,9 +112,18 @@ jobs:
           name: bumped-lock
           path: ${{ runner.temp }}/bumped
 
+      - id: app-token
+        if: vars.BOT_APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.BOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - name: Open or update PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           bumped="$RUNNER_TEMP/bumped"
@@ -126,12 +138,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -C "$BRANCH"
           git add -A mise.lock .mise
-          git commit -q -m "tools: upgrade mise tools" -m "$summary"
+          git commit -q -m "chore(deps): upgrade mise tools" -m "$summary"
           git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
 
           body="$(printf 'Upgrades the tools pinned in `mise.lock`:\n\n%s\n\nLint and the full template test passed with these versions in [this run](%s).\n\nOpened by the **Upgrade tools** workflow, which updates this PR daily until it is merged.' "$summary" "$RUN_URL")"
           if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq length)" = "0" ]; then
-            gh pr create --head "$BRANCH" --base main --title "tools: upgrade mise tools" --body "$body"
+            gh pr create --head "$BRANCH" --base main --title "chore(deps): upgrade mise tools" --body "$body"
           else
             gh pr edit "$BRANCH" --body "$body"
           fi
