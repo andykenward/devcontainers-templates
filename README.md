@@ -4,7 +4,7 @@ My personal [dev container](https://containers.dev) setup: a **prebuilt image** 
 
 | Path | What |
 | --- | --- |
-| `images/dev/` | The prebuilt image (mise + Node LTS, Claude Code CLI, GitHub CLI, zizmor), published as `ghcr.io/andykenward/devcontainer-dev` |
+| `images/dev/` | The prebuilt image (mise + Node LTS, GitHub CLI, zizmor; Claude Code is installed on create), published as `ghcr.io/andykenward/devcontainer-dev` |
 | `src/dev/` | The `dev` template, published as `ghcr.io/andykenward/devcontainers-templates/dev`. See [its README](src/dev/README.md) |
 | `test/dev/` | Checks that run inside a container created from the template |
 | `.devcontainer/` | Dev container for working on this repo (builds the image locally and adds Docker-in-Docker) |
