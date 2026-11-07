@@ -15,19 +15,19 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # Installs the tools in mise.toml and runs the same lint task as locally.
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - run: mise run lint
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
 
