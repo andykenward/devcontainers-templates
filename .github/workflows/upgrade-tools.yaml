@@ -7,7 +7,7 @@ name: Upgrade tools
 #
 # The checks run here, before the PR is opened; the PR description links to
 # this run. PRs opened with GITHUB_TOKEN don't start other workflows, so with a
-# GitHub App (vars.BOT_APP_CLIENT_ID and secrets.BOT_APP_PRIVATE_KEY) the PR is
+# GitHub App (vars.APP_CLIENT_ID and secrets.APP_PRIVATE_KEY) the PR is
 # pushed and opened with the App's token instead, and gets the normal PR checks
 # (Test, PR title) too. Test then runs a second time on the PR, on the same
 # lock files: the run here keeps a failing upgrade from opening a PR, and the
@@ -115,11 +115,11 @@ jobs:
           path: ${{ runner.temp }}/bumped
 
       - id: app-token
-        if: vars.BOT_APP_CLIENT_ID != ''
+        if: vars.APP_CLIENT_ID != ''
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars.BOT_APP_CLIENT_ID }}
-          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
 

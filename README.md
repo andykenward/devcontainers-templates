@@ -53,7 +53,7 @@ After the first publish, set both GHCR packages to **public** under the package 
 
 - **General → Pull Requests:** allow only **squash merging**, with **Pull request title** as the default commit message.
 - **Rules → Rulesets** for `main`: require a pull request, and require the **PR title** and **Test** status checks.
-- **Optional GitHub App** for the bots: PRs opened with `GITHUB_TOKEN` (the Release PR and the `mise-upgrade` PR) don't trigger other workflows, so required checks never run on them. Create a GitHub App with *Contents* and *Pull requests* read and write, install it on this repo, and add its client ID as the variable `BOT_APP_CLIENT_ID` and a private key as the secret `BOT_APP_PRIVATE_KEY`. Both workflows then use the App's token. Without it, merge those PRs with a ruleset bypass.
+- **Optional GitHub App** for the bots: PRs opened with `GITHUB_TOKEN` (the Release PR and the `mise-upgrade` PR) don't trigger other workflows, so required checks never run on them. Create a GitHub App with *Contents* and *Pull requests* read and write, install it on this repo, and add its client ID as the variable `APP_CLIENT_ID` and a private key as the secret `APP_PRIVATE_KEY`. Both workflows then use the App's token. Without it, merge those PRs with a ruleset bypass.
 
 ## Local development
 

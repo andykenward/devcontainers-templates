@@ -1,0 +1,3 @@
+
+# Private keys dropped in to set secrets with gh; never commit them
+*.pem
