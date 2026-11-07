@@ -2,25 +2,42 @@ name: Test
 
 # Lints the scripts and workflows, builds the image locally (amd64) and runs the
 # template against it, including a rebuild to check that the volumes persist.
+# Also called by upgrade-tools.yaml to test bumped tool versions.
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      lock-artifact:
+        description: Artifact from the calling run with mise.lock and .mise/ to test instead of the committed ones
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      - if: inputs.lock-artifact != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.lock-artifact }}
+
       # Installs the tools in mise.toml and runs the same lint task as locally.
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+      # minimum_release_age is the 7-day cooldown from mise.toml, applied to
+      # the mise binary itself (the action's default is 24h).
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          minimum_release_age: 7d
 
       # GH_TOKEN turns on zizmor's online audits (known-vulnerable actions etc.).
       - run: mise run lint
@@ -30,18 +47,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      - if: inputs.lock-artifact != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.lock-artifact }}
+
       # Provides the devcontainer CLI from mise.toml.
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          minimum_release_age: 7d
 
       - name: Build image locally
         run: |
           devcontainer build \
             --workspace-folder images/dev \
-            --image-name "ghcr.io/${GITHUB_REPOSITORY_OWNER}/devcontainer-dev:latest"
+            --image-name "ghcr.io/${GITHUB_REPOSITORY_OWNER}/devcontainer-dev:local"
 
       - name: Test template
         run: .github/scripts/test-template.sh dev

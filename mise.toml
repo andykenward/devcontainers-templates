@@ -1,4 +1,23 @@
+#:schema https://mise.jdx.dev/schema/mise.json
 # Tools for working on this repo. Installed by `mise install` (runs in postCreate).
+#
+# Exact versions and checksums are pinned in mise.lock, so "latest"/"lts" here
+# only say what `mise lock --bump` moves to. The Upgrade tools workflow does
+# that daily and opens a PR, so new versions only arrive after Test passes.
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64", "linux-arm64"]
+# Cooldown, like Dependabot's: only resolve "latest"/"lts" to releases at least
+# 7 days old, so a compromised or broken release has time to be pulled.
+minimum_release_age = "7d"
+# Install only what mise.lock records, with a URL and checksum per platform;
+# a missing or incomplete entry is an error instead of a fresh lookup. To add a
+# tool, add it under [tools], then run `mise lock` and `mise install`
+# (`mise use` refuses tools that aren't locked yet).
+locked = true
+# Plugin backends run community install scripts; this repo doesn't use them.
+disable_backends = ["asdf", "vfox"]
+
 [tools]
 node = "lts"
 "npm:@devcontainers/cli" = "latest"
@@ -8,7 +27,7 @@ zizmor = "latest"
 [tasks.test]
 description = "Build the image locally and test the dev template"
 run = """
-devcontainer build --workspace-folder images/dev --image-name ghcr.io/andykenward/devcontainer-dev:latest
+devcontainer build --workspace-folder images/dev --image-name ghcr.io/andykenward/devcontainer-dev:local
 .github/scripts/test-template.sh dev
 """
 

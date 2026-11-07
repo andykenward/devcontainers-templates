@@ -5,7 +5,10 @@
 FROM mcr.microsoft.com/devcontainers/base:3.0.12-ubuntu24.04
 
 ARG USERNAME=vscode
-ARG NODE_VERSION=lts
+# Node major. Pinned so a weekly rebuild can't move projects to a new LTS line
+# under the same image tag. Bump it in a feat(image)!: PR when the next LTS lands
+# (even-numbered majors, each October); the rebuild still picks up 26.x patches.
+ARG NODE_VERSION=26
 
 # --- mise (system install from the official apt repo) -----------------------
 RUN set -eux; \
@@ -24,7 +27,6 @@ RUN set -eux; \
 # persists Claude Code's login, settings and history across rebuilds.
 ENV CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude \
     MISE_DATA_DIR=/home/${USERNAME}/.local/share/mise \
-    MISE_TRUSTED_CONFIG_PATHS=/workspaces \
     MISE_NODE_COREPACK=true \
     PATH=/home/${USERNAME}/.local/bin:/home/${USERNAME}/.local/share/mise/shims:${PATH}
 
@@ -56,7 +58,17 @@ RUN set -eux; \
 # Node.js, and zizmor for auditing GitHub Actions workflows. They live in
 # ~/.config/mise/config.toml, so postCreate's `mise install` also puts them on
 # the shared mise volume.
+#
+# Hardening, in the same global config:
+# - paranoid "plugins": refuse to install unregistered community plugins.
+# - disable_backends: the asdf and vfox plugin backends run community install
+#   scripts. A trusted project that needs them can set disable_backends = []
+#   in its own mise.toml.
+# No config path is trusted automatically: postCreate trusts the project's own
+# config, and anything else (e.g. a repo cloned to look at) asks first.
 RUN set -eux; \
+    mise settings set paranoid plugins; \
+    mise settings set disable_backends asdf,vfox; \
     mise settings set idiomatic_version_file_enable_tools node; \
     mise use --global "node@${NODE_VERSION}" zizmor@latest; \
     mise reshim; \
@@ -67,3 +79,13 @@ RUN set -eux; \
 # stale version.
 
 USER root
+
+# Labels last: IMAGE_VERSION changes every release, and anything that uses a
+# changed ARG (and every RUN after it) misses the layer cache. Here it only
+# touches this metadata layer, so the cached installs above are reused.
+# IMAGE_VERSION is passed by build-image.yaml; "dev" for local and test builds.
+ARG IMAGE_VERSION=dev
+LABEL org.opencontainers.image.title="devcontainer-dev" \
+      org.opencontainers.image.description="Dev container image: mise, GitHub CLI, zizmor; Claude Code installed on create" \
+      org.opencontainers.image.source="https://github.com/andykenward/devcontainers-templates" \
+      org.opencontainers.image.version="${IMAGE_VERSION}"

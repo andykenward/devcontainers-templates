@@ -1,0 +1,74 @@
+name: Release
+
+# release-please keeps a Release PR open with the next version and changelog of
+# each component, worked out from the conventional PR titles merged to main:
+#   images/dev -> image-v<X.Y.Z>     (changelog: images/dev/CHANGELOG.md)
+#   src/dev    -> template-v<X.Y.Z>  (changelog: docs/changelogs/template-dev.md)
+# feat bumps the minor version, fix/perf/deps the patch, and a breaking change
+# (feat!: or a BREAKING CHANGE: footer) the major.
+#
+# Merging the Release PR tags the release(s), and this workflow then publishes
+# them: the image first, then the template, which defaults to the image's
+# major version tag.
+#
+# Optional: with a GitHub App (vars.APP_CLIENT_ID and
+# secrets.APP_PRIVATE_KEY), the Release PR is opened with the App's token,
+# so PR checks such as the title check run on it. GITHUB_TOKEN is used otherwise.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write # tags and GitHub releases
+      pull-requests: write # the Release PR
+    outputs:
+      image-released: ${{ steps.release.outputs['images/dev--release_created'] }}
+      image-tag: ${{ steps.release.outputs['images/dev--tag_name'] }}
+      template-released: ${{ steps.release.outputs['src/dev--release_created'] }}
+    steps:
+      - id: app-token
+        if: vars.APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  image:
+    needs: release-please
+    if: needs.release-please.outputs.image-released == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: $/.github/workflows/build-image.yaml
+    with:
+      tag: ${{ needs.release-please.outputs.image-tag }}
+
+  # After the image, so a new template never points at an image tag that
+  # doesn't exist yet. Runs when only the template was released, too.
+  template:
+    needs: [release-please, image]
+    if: ${{ !failure() && !cancelled() && needs.release-please.outputs.template-released == 'true' }}
+    permissions:
+      contents: read
+      packages: write
+    uses: $/.github/workflows/release-templates.yaml
