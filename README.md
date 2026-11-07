@@ -34,7 +34,7 @@ How a change gets released:
 2. **release-please keeps a Release PR open** with the next versions and changelog entries.
 3. **Merging the Release PR releases:** it tags the version(s), creates GitHub Releases, builds and pushes the image, then publishes the template.
 
-The image is also rebuilt weekly from its latest release, so its version tags pick up the newest base image packages, mise, Node LTS, gh and zizmor without a new release. The template's `imageVariant` defaults to the image's major version (`1`), so projects get those updates and compatible releases, but not breaking ones.
+The image is also rebuilt weekly from its latest release, so its version tags pick up the newest base image packages, mise, Node LTS, gh and zizmor without a new release. The template's `imageVariant` defaults to the image's major version (`1`), so projects get those updates and compatible releases, but not breaking ones. A breaking image change bumps that default in the same PR; the template publish checks it matches the newest image release.
 
 ## Workflows
 

@@ -5,10 +5,14 @@ name: Build image
 #   <X.Y.Z>, <X.Y>, <X>, latest and <yyyy-mm-dd>.
 #
 # - On release: release.yaml calls this with the new image-v<X.Y.Z> tag.
-# - Weekly: rebuilds the latest image release, picking up new releases of the
-#   base image's packages, mise, Node LTS, gh and zizmor. The version tags move
-#   to the fresh build, so projects on `1` or `1.2` get security updates
-#   without a new release. Unreleased changes on main are never published.
+# - Weekly: rebuilds the latest image release without the layer cache, picking
+#   up new releases of the base image's packages, mise, Node LTS, gh and
+#   zizmor. The version tags move to the fresh build, so projects on `1` or
+#   `1.2` get security updates without a new release. Unreleased changes on
+#   main are never published.
+# - On demand: builds the given release. The floating tags <X.Y>, <X> and
+#   latest only move to a build that is the newest release of that series, so
+#   rebuilding 1.2.0 after 1.3.0 can't roll `1` or `latest` back.
 on:
   schedule:
     - cron: "17 4 * * 1"
@@ -37,26 +41,46 @@ jobs:
     outputs:
       tag: ${{ steps.find.outputs.tag }}
       version: ${{ steps.find.outputs.version }}
+      image-tags: ${{ steps.find.outputs.image-tags }}
     steps:
       - id: find
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: |
+          releases="$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/image-v" --jq '.[].ref | sub("^refs/tags/"; "")' \
+            | grep -E '^image-v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V || true)"
           if [ -z "$TAG" ]; then
-            TAG="$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/image-v" --jq '.[].ref | sub("^refs/tags/"; "")' \
-              | grep -E '^image-v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
+            TAG="$(tail -1 <<<"$releases")"
+          fi
+          if [ -z "$TAG" ] && [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            echo "::notice::No image release yet, nothing to rebuild"
+            exit 0
           fi
           if ! [[ "$TAG" =~ ^image-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             echo "::error::No image release to build (tag: '${TAG}')"
             exit 1
           fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-          echo "Building $TAG"
+          version="${BASH_REMATCH[1]}"
+
+          # The release's own version and a dated tag always; a floating tag
+          # only when this release is the newest one it could point at.
+          newest() { grep -E "$1" <<<"$releases" | tail -1; }
+          tags="${version},$(date -u +%Y-%m-%d)"
+          [ "$(newest "^image-v${version%.*}\.")" = "$TAG" ] && tags+=",${version%.*}"
+          [ "$(newest "^image-v${version%%.*}\.")" = "$TAG" ] && tags+=",${version%%.*}"
+          [ "$(newest .)" = "$TAG" ] && tags+=",latest"
+
+          {
+            echo "tag=$TAG"
+            echo "version=$version"
+            echo "image-tags=$tags"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building $TAG, tags: $tags"
 
   build:
     needs: version
+    if: needs.version.outputs.tag != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -79,21 +103,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: tags
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          echo "list=${VERSION},${VERSION%.*},${VERSION%%.*},latest,$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
-
       # IMAGE_VERSION is passed to the Dockerfile as a build arg (see
       # devcontainer.json) for the org.opencontainers.image.version label.
+      # The weekly rebuild skips the layer cache: with it, every RUN layer of
+      # the previous build is reused and nothing inside the image refreshes.
       - uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
           IMAGE_VERSION: ${{ needs.version.outputs.version }}
         with:
           subFolder: images/dev
           imageName: ${{ env.IMAGE_NAME }}
-          imageTag: ${{ steps.tags.outputs.list }}
+          imageTag: ${{ needs.version.outputs.image-tags }}
           cacheFrom: ${{ env.IMAGE_NAME }}
+          noCache: ${{ github.event_name == 'schedule' }}
           platform: linux/amd64,linux/arm64
           push: always

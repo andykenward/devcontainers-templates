@@ -9,7 +9,9 @@ name: Upgrade tools
 # this run. PRs opened with GITHUB_TOKEN don't start other workflows, so with a
 # GitHub App (vars.BOT_APP_CLIENT_ID and secrets.BOT_APP_PRIVATE_KEY) the PR is
 # pushed and opened with the App's token instead, and gets the normal PR checks
-# (Test, PR title) too.
+# (Test, PR title) too. Test then runs a second time on the PR, on the same
+# lock files: the run here keeps a failing upgrade from opening a PR, and the
+# PR run is the required check that lets it merge.
 #
 # The bump and PR jobs are light and run on ubuntu-slim. The test is test.yaml,
 # called as a reusable workflow (Docker, ubuntu-latest), only on days a version
