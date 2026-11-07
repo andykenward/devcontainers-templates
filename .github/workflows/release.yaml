@@ -11,8 +11,8 @@ name: Release
 # them: the image first, then the template, which defaults to the image's
 # major version tag.
 #
-# Optional: with a GitHub App (vars.BOT_APP_CLIENT_ID and
-# secrets.BOT_APP_PRIVATE_KEY), the Release PR is opened with the App's token,
+# Optional: with a GitHub App (vars.APP_CLIENT_ID and
+# secrets.APP_PRIVATE_KEY), the Release PR is opened with the App's token,
 # so PR checks such as the title check run on it. GITHUB_TOKEN is used otherwise.
 on:
   push:
@@ -38,11 +38,11 @@ jobs:
       template-released: ${{ steps.release.outputs['src/dev--release_created'] }}
     steps:
       - id: app-token
-        if: vars.BOT_APP_CLIENT_ID != ''
+        if: vars.APP_CLIENT_ID != ''
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars.BOT_APP_CLIENT_ID }}
-          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
 
