@@ -39,6 +39,7 @@ RUN set -eux; \
     su ${USERNAME} -c "mkdir -p \
       /home/${USERNAME}/.claude \
       /home/${USERNAME}/.config/gh \
+      /home/${USERNAME}/.config/git \
       /home/${USERNAME}/.config/mise \
       /home/${USERNAME}/.local/bin \
       /home/${USERNAME}/.local/share/mise \
