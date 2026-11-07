@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/andykenward/devcontainers-templates/compare/template-v1.2.0...template-v1.2.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* **image:** skip gh auth setup-git when an SSH agent has a key ([#21](https://github.com/andykenward/devcontainers-templates/issues/21)) ([38f1414](https://github.com/andykenward/devcontainers-templates/commit/38f14145f04f04f05140bfeaa68f9e7bd1e23f32))
+
 ## [1.2.0](https://github.com/andykenward/devcontainers-templates/compare/template-v1.1.0...template-v1.2.0) (2026-11-07)
 
 
