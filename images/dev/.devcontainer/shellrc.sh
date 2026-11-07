@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Sourced from ~/.bashrc and ~/.zshrc (added by the dev image).
 
 # mise: activate for interactive shells (shims on PATH cover non-interactive use).
@@ -14,6 +15,7 @@ if [ -d /commandhistory ] && [ -w /commandhistory ]; then
   if [ -n "${ZSH_VERSION:-}" ]; then
     HISTFILE=/commandhistory/.zsh_history
     HISTSIZE=100000
+    # shellcheck disable=SC2034 # read by zsh
     SAVEHIST=100000
     setopt INC_APPEND_HISTORY 2>/dev/null || true
   elif [ -n "${BASH_VERSION:-}" ]; then

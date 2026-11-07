@@ -12,6 +12,16 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Installs the tools in mise.toml and runs the same lint task as locally.
+      - uses: jdx/mise-action@v2
+
+      - run: mise run lint
+
   test:
     runs-on: ubuntu-latest
     steps:
