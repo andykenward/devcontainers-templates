@@ -14,16 +14,12 @@ name: Upgrade tools
 # contains exactly what was tested.
 #
 # The cooldown is minimum_release_age in mise.toml. For an urgent security fix,
-# run this manually with minimum-release-age 0 to override it.
+# lock the exact version yourself (`mise lock <tool>@<version>`, which the
+# cooldown doesn't filter) and open a PR.
 on:
   schedule:
     - cron: "41 5 * * *"
   workflow_dispatch:
-    inputs:
-      minimum-release-age:
-        description: Override mise.toml's minimum_release_age (e.g. 2w, a date like 2026-11-01, or 0 for none). Empty uses mise.toml.
-        type: string
-        default: ""
 
 permissions:
   contents: read
@@ -50,15 +46,7 @@ jobs:
         id: bump
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # Empty on scheduled runs, so mise.toml's minimum_release_age applies.
-          MIN_AGE: ${{ inputs.minimum-release-age }}
         run: |
-          case "$MIN_AGE" in
-            "") age_args=() ;;
-            0|0d|[0-9]*[dwmy]|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) age_args=(--minimum-release-age "$MIN_AGE") ;;
-            *) echo "::error::invalid minimum-release-age: $MIN_AGE"; exit 1 ;;
-          esac
-
           # Bump only tools whose newest release outside the cooldown is newer
           # than what's locked: --bump with a cooldown would otherwise move a
           # tool that was locked inside the cooldown back down.
@@ -69,11 +57,11 @@ jobs:
             else
               echo "Skipping $name: $old -> $new would be a downgrade"
             fi
-          done < <(mise lock --bump --dry-run --json "${age_args[@]}" | jq -r '.[] | [.name, (.old_versions[0] // ""), (.new_versions[0] // "")] | @tsv')
+          done < <(mise lock --bump --dry-run --json | jq -r '.[] | [.name, (.old_versions[0] // ""), (.new_versions[0] // "")] | @tsv')
 
           if [ "${#tools[@]}" -gt 0 ]; then
             echo "Upgrading: ${tools[*]}"
-            mise lock --bump --json "${age_args[@]}" "${tools[@]}" > changes.json
+            mise lock --bump --json "${tools[@]}" > changes.json
           else
             echo "[]" > changes.json
           fi
