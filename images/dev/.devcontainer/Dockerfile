@@ -51,12 +51,15 @@ RUN set -eux; \
     echo '. "$HOME/.devcontainer-shellrc.sh"' >> ~/.bashrc; \
     echo '. "$HOME/.devcontainer-shellrc.sh"' >> ~/.zshrc
 
-# Global Node.js via mise (projects override with their own mise.toml/.nvmrc/.node-version).
+# Global tools via mise (projects override with their own mise.toml/.nvmrc/.node-version):
+# Node.js, and zizmor for auditing GitHub Actions workflows. They live in
+# ~/.config/mise/config.toml, so postCreate's `mise install` also puts them on
+# the shared mise volume.
 RUN set -eux; \
     mise settings set idiomatic_version_file_enable_tools node; \
-    mise use --global "node@${NODE_VERSION}"; \
+    mise use --global "node@${NODE_VERSION}" zizmor@latest; \
     mise reshim; \
-    node --version; npm --version
+    node --version; npm --version; zizmor --version
 
 # Claude Code CLI (native installer, installs to ~/.local/bin/claude).
 RUN set -eux; \

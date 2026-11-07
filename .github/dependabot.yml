@@ -1,6 +1,9 @@
 # Keeps pinned dependencies current. Things installed from "latest" installers
-# (mise, Node LTS, Claude Code, gh) are refreshed by the weekly image rebuild in
-# .github/workflows/build-image.yaml instead.
+# (mise, Node LTS, Claude Code, gh, zizmor) are refreshed by the weekly image
+# rebuild in .github/workflows/build-image.yaml instead.
+#
+# The cooldown waits a week after a release before proposing it, so a
+# compromised or broken release has time to be caught and pulled.
 version: 2
 updates:
   # Base image in the Dockerfile.
@@ -8,6 +11,8 @@ updates:
     directory: /images/dev/.devcontainer
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "image"
 
@@ -18,14 +23,18 @@ updates:
       - /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "image"
 
-  # GitHub Actions used by the workflows.
+  # GitHub Actions used by the workflows (pinned to commit hashes).
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]

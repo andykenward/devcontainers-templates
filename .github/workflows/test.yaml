@@ -1,7 +1,7 @@
 name: Test
 
-# Builds the image locally (amd64) and runs the template against it, including
-# a rebuild to check that the volumes persist.
+# Lints the scripts and workflows, builds the image locally (amd64) and runs the
+# template against it, including a rebuild to check that the volumes persist.
 on:
   pull_request:
   push:
@@ -15,29 +15,33 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
 
       # Installs the tools in mise.toml and runs the same lint task as locally.
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
 
+      # GH_TOKEN turns on zizmor's online audits (known-vulnerable actions etc.).
       - run: mise run lint
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          node-version: lts/*
+          persist-credentials: false
 
-      - run: npm install -g @devcontainers/cli
+      # Provides the devcontainer CLI from mise.toml.
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
 
       - name: Build image locally
         run: |
           devcontainer build \
             --workspace-folder images/dev \
-            --image-name ghcr.io/${{ github.repository_owner }}/devcontainer-dev:latest
+            --image-name "ghcr.io/${GITHUB_REPOSITORY_OWNER}/devcontainer-dev:latest"
 
       - name: Test template
         run: .github/scripts/test-template.sh dev

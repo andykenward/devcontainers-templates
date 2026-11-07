@@ -3,6 +3,7 @@
 node = "lts"
 "npm:@devcontainers/cli" = "latest"
 shellcheck = "latest"
+zizmor = "latest"
 
 [tasks.test]
 description = "Build the image locally and test the dev template"
@@ -12,5 +13,8 @@ devcontainer build --workspace-folder images/dev --image-name ghcr.io/andykenwar
 """
 
 [tasks.lint]
-description = "Shellcheck all scripts"
-run = "shellcheck images/dev/.devcontainer/*.sh test/*/test.sh .github/scripts/*.sh"
+description = "Shellcheck all scripts and audit GitHub Actions workflows with zizmor"
+run = [
+  "shellcheck images/dev/.devcontainer/*.sh test/*/test.sh .github/scripts/*.sh",
+  "zizmor .",
+]

@@ -18,6 +18,7 @@ check "node"   node --version
 check "npm"    npm --version
 check "claude" claude --version
 check "gh"     gh --version
+check "zizmor" zizmor --version
 check "node via interactive zsh"  zsh -ic 'node --version'
 check "node via interactive bash" bash -ic 'node --version'
 check "CLAUDE_CONFIG_DIR is set" test "${CLAUDE_CONFIG_DIR:-}" = "$HOME/.claude"
