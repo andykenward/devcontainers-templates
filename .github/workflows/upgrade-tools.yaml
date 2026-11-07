@@ -7,6 +7,11 @@ name: Upgrade tools
 #
 # PRs opened with GITHUB_TOKEN don't start other workflows, so the checks run
 # here, before the PR is opened; the PR description links to this run.
+#
+# The bump and PR jobs are light and run on ubuntu-slim. The test needs Docker
+# and more than 15 minutes, so it runs on ubuntu-latest, and only on days a
+# version changed. The bumped lock files travel between jobs as an artifact,
+# so the PR contains exactly what was tested.
 on:
   schedule:
     - cron: "41 5 * * *"
@@ -19,15 +24,11 @@ concurrency:
   group: upgrade-tools
   cancel-in-progress: false
 
-env:
-  BRANCH: mise-upgrade
-
 jobs:
-  upgrade:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # push the mise-upgrade branch
-      pull-requests: write # open or update the PR
+  bump:
+    runs-on: ubuntu-slim
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -42,43 +43,83 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          mise lock --bump --json > "$RUNNER_TEMP/changes.json"
-          cat "$RUNNER_TEMP/changes.json"
-          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+          mise lock --bump --json > changes.json
+          cat changes.json
+          if [ -z "$(git status --porcelain -- mise.lock .mise)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install bumped tools
-        if: steps.bump.outputs.changed == 'true'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: mise install
+      - if: steps.bump.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bumped-lock
+          path: |
+            mise.lock
+            .mise/
+            changes.json
+          include-hidden-files: true
+          retention-days: 1
+
+  test:
+    needs: bump
+    if: needs.bump.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bumped-lock
+
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
 
       - name: Lint
-        if: steps.bump.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: mise run lint
 
       - name: Test
-        if: steps.bump.outputs.changed == 'true'
         run: mise run test
 
+  pr:
+    needs: test
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write # push the mise-upgrade branch
+      pull-requests: write # open or update the PR
+    env:
+      BRANCH: mise-upgrade
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bumped-lock
+          path: ${{ runner.temp }}/bumped
+
       - name: Open or update PR
-        if: steps.bump.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          summary="$(jq -r '.[] | "- **\(.name)**: \(.old_versions | join(", ")) → \(.new_versions | join(", "))"' "$RUNNER_TEMP/changes.json")"
+          bumped="$RUNNER_TEMP/bumped"
+          rm -rf .mise
+          cp "$bumped/mise.lock" mise.lock
+          [ -d "$bumped/.mise" ] && cp -R "$bumped/.mise" .mise
+
+          summary="$(jq -r '.[] | "- **\(.name)**: \(.old_versions | join(", ")) → \(.new_versions | join(", "))"' "$bumped/changes.json")"
           [ -n "$summary" ] || summary="- Checksums and download URLs refreshed (no version changes)"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -C "$BRANCH"
-          git add mise.lock .mise
+          git add -A mise.lock .mise
           git commit -q -m "tools: upgrade mise tools" -m "$summary"
           git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
 
