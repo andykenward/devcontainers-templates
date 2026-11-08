@@ -28,7 +28,7 @@
     },
     "volumePrefix": {
       "type": "string",
-      "description": "Prefix for the shared volumes (Claude Code, GitHub CLI, mise). Containers using the same prefix share logins and tool installs:",
+      "description": "Prefix for the shared volumes (Claude Code, GitHub CLI, git config). Containers using the same prefix share logins:",
       "proposals": [
         "devcontainer"
       ],
