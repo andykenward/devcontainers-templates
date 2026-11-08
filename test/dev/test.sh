@@ -131,16 +131,41 @@ check "project starship config replaces it" project_starship_config
 check "project starship config reaches child shells" project_config_reaches_child_shell
 
 # A project config that mise can't install must not stop postCreate from
-# installing Claude Code and setting up git.
+# installing Claude Code and setting up git. The warning proves mise really
+# failed, so the test can't pass without reaching that branch.
 post_create_survives_mise_failure() {
-  local dir ok
+  local dir out ok
   dir="$(mktemp -d "$PWD/.broken-mise.XXXXXX")"
   printf '[tools]\n"aqua:devcontainer-test/does-not-exist" = "1.0.0"\n' > "$dir/mise.toml"
-  (cd "$dir" && devcontainer-post-create) && claude --version; ok=$?
+  out="$(cd "$dir" && devcontainer-post-create 2>&1)" &&
+    grep -q 'WARNING: mise install failed' <<<"$out" && claude --version; ok=$?
+  [ "$ok" -eq 0 ] || echo "$out"
   rm -rf "$dir"
   return "$ok"
 }
 check "postCreate continues after a failed mise install" post_create_survives_mise_failure
+
+# With gh logged in and no SSH agent, postCreate sets gh up as git's
+# credential helper. It must land in ~/.gitconfig, which each rebuild
+# recreates, not in ~/.config/git/config on the shared volume. git writes
+# --global there when ~/.gitconfig doesn't exist, as in this throwaway HOME.
+# The fake gh reports a login and writes the helper the way gh does; the bad
+# CLAUDE_CODE_VERSION skips the Claude Code download.
+# shellcheck disable=SC2016 # expand inside the fake gh
+gh_helper_stays_off_shared_volume() {
+  local tmp ok
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/bin" "$tmp/home/.config/git"
+  : > "$tmp/home/.config/git/config"
+  printf '#!/bin/sh\n[ "$1 $2" = "auth setup-git" ] && git config --global credential.helper gh-test\nexit 0\n' > "$tmp/bin/gh"
+  chmod +x "$tmp/bin/gh"
+  (cd "$tmp" && HOME="$tmp/home" PATH="$tmp/bin:$PATH" SSH_AUTH_SOCK='' CLAUDE_CODE_VERSION=0.0.0-none \
+    devcontainer-post-create >/dev/null 2>&1)
+  ! grep -q gh-test "$tmp/home/.config/git/config" && grep -q gh-test "$tmp/home/.gitconfig"; ok=$?
+  rm -rf "$tmp"
+  return "$ok"
+}
+check "gh credential helper stays off the shared git volume" gh_helper_stays_off_shared_volume
 
 for dir in "$HOME/.claude" "$HOME/.config/gh" "$HOME/.config/git" "$HOME/.local/share/mise" \
            "$HOME/.vscode-server/extensions" /commandhistory; do

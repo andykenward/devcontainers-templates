@@ -19,6 +19,9 @@ name: Build image
 #   floating tags <X.Y>, <X> and latest only move to a build that is the
 #   newest release of that series, so rebuilding 1.2.0 after 1.3.0 can't roll
 #   `1` or `latest` back.
+#
+# Every build runs the template test on both platforms before any tag moves to
+# it; a release that fails keeps its previous build.
 on:
   schedule:
     - cron: "17 4 * * 1"
@@ -56,43 +59,26 @@ jobs:
       # [{ "tag": "image-v1.2.0", "version": "1.2.0", "major": "1", "tags": "1.2.0,1.2.0-2026-11-07,1.2,1,latest" }, ...]
       matrix: ${{ steps.find.outputs.matrix }}
     steps:
-      # Only the shared script is needed here.
+      # Only the shared scripts are needed here.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: .github/scripts
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
+      # Which releases to build and their tags: see image-matrix.sh (tested by
+      # image-matrix-test.sh in `mise run lint`).
       - id: find
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: |
-          # Every image-v<X.Y.Z> tag, oldest first.
+          # Each assigned on its own, so an API error or an unknown tag fails
+          # the step (the default shell has no pipefail).
           releases="$(.github/scripts/image-releases.sh)"
-
-          # The newest release whose version starts with $1: "1.2.", "1." or ""
-          # for any. A fixed-string match, so the dots are literal; every entry
-          # starts with image-v, which anchors the prefix.
-          newest() { grep -F "image-v$1" <<<"$releases" | tail -1; }
-
-          if [ -n "$TAG" ]; then
-            if ! grep -qxF "$TAG" <<<"$releases"; then
-              echo "::error::'${TAG}' is not an image release (image-v<X.Y.Z> tag)"
-              exit 1
-            fi
-            build="$TAG"
-          else
-            # The newest release of each of the two highest majors.
-            majors="$(for tag in $releases; do version="${tag#image-v}"; echo "${version%%.*}"; done | uniq | tail -2)"
-            build=""
-            for major in $majors; do
-              build+="$(newest "${major}.")"$'\n'
-            done
-          fi
-
-          if [ -z "$build" ]; then
-            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+          matrix="$(.github/scripts/image-matrix.sh "$TAG" <<<"$releases")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          if [ "$matrix" = "[]" ]; then
             if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
               echo "::notice::No image release yet, nothing to rebuild"
               exit 0
@@ -100,23 +86,6 @@ jobs:
             echo "::error::No image release to build"
             exit 1
           fi
-
-          # Each build gets its own version and a dated tag; a floating tag only
-          # when that release is the newest one it could point at.
-          date="$(date -u +%Y-%m-%d)"
-          matrix="[]"
-          for tag in $build; do
-            version="${tag#image-v}"
-            major="${version%%.*}"
-            tags="${version},${version}-${date}"
-            [ "$(newest "${version%.*}.")" = "$tag" ] && tags+=",${version%.*}"
-            [ "$(newest "${major}.")" = "$tag" ] && tags+=",${major}"
-            [ "$(newest "")" = "$tag" ] && tags+=",latest"
-            matrix="$(jq -c --arg tag "$tag" --arg version "$version" --arg major "$major" --arg tags "$tags" \
-              '. + [{tag: $tag, version: $version, major: $major, tags: $tags}]' <<<"$matrix")"
-            echo "Building $tag, tags: $tags"
-          done
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   # Each platform builds on a native runner. Emulating arm64 with QEMU on an
   # amd64 runner made that half about 10x slower than the amd64 half.
@@ -199,6 +168,21 @@ jobs:
           mkdir -p digests
           echo "$digest" > "digests/${ARCH}"
 
+      # The template test against the image just pushed, before any tag points
+      # at it: rebuilds pick up new mise, Starship, gh, zizmor and Node releases
+      # that no PR has tested, and the Dockerfile only checks --version. The
+      # release's own test files hold a rebuild of the previous major to what
+      # that release promised. A failure stops the digest upload below, so
+      # merge has nothing to tag. test-template.sh runs the :local tag.
+      - name: Test template
+        env:
+          ARCH: ${{ matrix.platform.arch }}
+        run: |
+          digest="$(cat "digests/${ARCH}")"
+          docker pull "${IMAGE_NAME}@${digest}"
+          docker tag "${IMAGE_NAME}@${digest}" "${IMAGE_NAME}:local"
+          release/.github/scripts/test-template.sh dev
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: digest-${{ matrix.release.version }}-${{ matrix.platform.arch }}
@@ -208,9 +192,10 @@ jobs:
 
   # Tags each release's two platform images together as one multi-platform
   # image. Runs even if another release's build failed (fail-fast is off), and
-  # fails for a release missing either platform, so nothing is published half
-  # built. Only registry calls, so ubuntu-slim: it has the Docker CLI and
-  # buildx but no daemon, and neither `docker login` nor imagetools needs one.
+  # fails for a release missing either platform's tested build, so nothing is
+  # published half built or untested. Only registry calls, so ubuntu-slim: it
+  # has the Docker CLI and buildx but no daemon, and neither `docker login`
+  # nor imagetools needs one.
   merge:
     name: merge ${{ matrix.tag }}
     needs: [version, build]
@@ -253,7 +238,7 @@ jobs:
           sources=()
           for arch in amd64 arm64; do
             if [ ! -s "digests/${arch}" ]; then
-              echo "::error::No linux/${arch} build to publish"
+              echo "::error::No tested linux/${arch} build to publish"
               exit 1
             fi
             sources+=("${IMAGE_NAME}@$(cat "digests/${arch}")")

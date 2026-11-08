@@ -43,4 +43,5 @@ run = [
   "shellcheck images/dev/.devcontainer/*.sh test/*/test.sh .github/scripts/*.sh",
   "zizmor .",
   ".github/scripts/check-mounts.sh",
+  ".github/scripts/image-matrix-test.sh",
 ]
