@@ -54,6 +54,9 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   if [ -n "${SSH_AUTH_SOCK:-}" ] && ssh-add -l >/dev/null 2>&1; then
     echo "SSH agent has a key: leaving git's credential helpers alone"
   else
-    gh auth setup-git
+    # Into ~/.gitconfig, which each rebuild recreates. Without it, git writes
+    # --global to ~/.config/git/config when ~/.gitconfig doesn't exist: the
+    # shared volume, where the helper would reach containers with an agent.
+    GIT_CONFIG_GLOBAL="$HOME/.gitconfig" gh auth setup-git
   fi
 fi
