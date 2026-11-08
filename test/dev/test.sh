@@ -85,10 +85,22 @@ image_starship_config_valid() {
   rmdir "$dir"
   [ -z "$errors" ] || { echo "$errors"; return 1; }
 }
+# A starship shim on the shared mise volume (left by a mise install no config
+# uses) comes first on PATH and fails; the prompt must still start.
+prompt_survives_stale_shim() {
+  local shim="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims/starship" ok
+  [ ! -e "$shim" ] || return 1
+  printf '#!/bin/sh\necho "mise ERROR No version is set for shim: starship" >&2\nexit 1\n' > "$shim"
+  chmod +x "$shim"
+  starship_config_is zsh default && starship_config_is bash default; ok=$?
+  rm -f "$shim"
+  return "$ok"
+}
 check "starship" starship --version
 check "starship outside the mise volume" test "$(command -v starship)" = /usr/local/bin/starship
 check "starship prompt in zsh, image config"  starship_config_is zsh default
 check "starship prompt in bash, image config" starship_config_is bash default
+check "starship prompt despite a stale mise shim" prompt_survives_stale_shim
 check "image starship config is valid" image_starship_config_valid
 check "project starship config replaces it" project_starship_config
 check "project starship config reaches child shells" project_config_reaches_child_shell
