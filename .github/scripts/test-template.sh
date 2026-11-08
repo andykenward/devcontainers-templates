@@ -60,12 +60,22 @@ exec_in() { devcontainer exec --workspace-folder "$workspace" "$@"; }
 up
 exec_in bash ./test-project/test.sh
 # shellcheck disable=SC2016 # expand inside the container, not here
-exec_in bash -c 'echo persisted > "$CLAUDE_CONFIG_DIR/.persist-test" && echo persisted > /commandhistory/.persist-test && git config --file "$HOME/.config/git/config" test.persisted yes && echo persisted > "$HOME/.local/share/mise/.persist-test"'
+exec_in bash -c '
+  set -e
+  for dir in "$CLAUDE_CONFIG_DIR" /commandhistory "$HOME/.config/gh" "$HOME/.local/share/mise" "$HOME/.vscode-server/extensions"; do
+    echo persisted > "$dir/.persist-test"
+  done
+  git config --file "$HOME/.config/git/config" test.persisted yes'
 
 echo "--- rebuilding container to check persistence"
 up --remove-existing-container
 # shellcheck disable=SC2016 # expand inside the container, not here
-exec_in bash -c 'grep -q persisted "$CLAUDE_CONFIG_DIR/.persist-test" && grep -q persisted /commandhistory/.persist-test && [ "$(git config --get test.persisted)" = yes ] && grep -q persisted "$HOME/.local/share/mise/.persist-test"'
+exec_in bash -c '
+  set -e
+  for dir in "$CLAUDE_CONFIG_DIR" /commandhistory "$HOME/.config/gh" "$HOME/.local/share/mise" "$HOME/.vscode-server/extensions"; do
+    grep -q persisted "$dir/.persist-test" || { echo "❌ $dir did not persist"; exit 1; }
+  done
+  [ "$(git config --get test.persisted)" = yes ] || { echo "❌ git config did not persist"; exit 1; }'
 echo "✅ volumes persisted across rebuild"
 
 devcontainer_cleanup
