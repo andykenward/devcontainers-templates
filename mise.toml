@@ -38,8 +38,9 @@ devcontainer build --workspace-folder images/dev --image-name ghcr.io/andykenwar
 """
 
 [tasks.lint]
-description = "Shellcheck all scripts and audit GitHub Actions workflows with zizmor"
+description = "Shellcheck all scripts, audit GitHub Actions workflows with zizmor and check the repo's dev container matches the template"
 run = [
   "shellcheck images/dev/.devcontainer/*.sh test/*/test.sh .github/scripts/*.sh",
   "zizmor .",
+  ".github/scripts/check-mounts.sh",
 ]
