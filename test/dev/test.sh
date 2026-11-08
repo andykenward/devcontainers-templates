@@ -44,25 +44,54 @@ check "no auto-trusted config paths"     no_auto_trust
 check "config outside the project is not trusted" untrusted_config_ignored
 
 # Starship prompt in both shells: the image's config by default, the project's
-# .devcontainer/starship.toml (the template's STARSHIP_CONFIG) once it exists.
+# .devcontainer/starship.toml (the template's DEVCONTAINER_STARSHIP_CONFIG)
+# whenever it exists. Prints "starship-config=<config>" only when Starship is
+# running, so other rc output can't be mistaken for the result.
 # shellcheck disable=SC2016 # expand inside the interactive shell
 starship_in() {
-  "$1" -ic '[ "$STARSHIP_SHELL" = "$0" ] && printf "%s\n" "${STARSHIP_CONFIG:-default}"' "$1" 2>/dev/null | tail -1
+  "$1" -ic '[ "$STARSHIP_SHELL" = "$0" ] && echo "starship-config=${STARSHIP_CONFIG:-default}"' "$1" 2>/dev/null |
+    grep -o 'starship-config=.*'
 }
-starship_config_is() { [ "$(starship_in "$1")" = "$2" ]; }
+starship_config_is() { [ "$(starship_in "$1")" = "starship-config=$2" ]; }
+project_config_path() { echo "${DEVCONTAINER_STARSHIP_CONFIG:?template sets DEVCONTAINER_STARSHIP_CONFIG}"; }
 project_starship_config() {
-  local f="${STARSHIP_CONFIG:?template sets STARSHIP_CONFIG}" ok
+  local f ok
+  f="$(project_config_path)" || return 1
   [ ! -e "$f" ] || return 1 # the template ships no project config
   echo 'add_newline = true' > "$f"
   starship_config_is zsh "$f" && starship_config_is bash "$f"; ok=$?
   rm -f "$f"
   return "$ok"
 }
+# A shell started before the project file existed passes the project path on:
+# a child shell started after the file is created uses it.
+# shellcheck disable=SC2016 # expand inside the shells
+project_config_reaches_child_shell() {
+  local f ok
+  f="$(project_config_path)" || return 1
+  [ ! -e "$f" ] || return 1
+  F="$f" zsh -ic 'echo "add_newline = true" > "$F"; zsh -ic "echo starship-config=\${STARSHIP_CONFIG:-default}"' 2>/dev/null |
+    grep -qx "starship-config=$f"; ok=$?
+  rm -f "$f"
+  return "$ok"
+}
+# Starship exits 0 even when it can't parse its config; it reports problems as
+# ERROR or WARN on stderr. Run in an empty folder so no module times out.
+image_starship_config_valid() {
+  local config="$HOME/.config/starship.toml" dir errors
+  [ -r "$config" ] || return 1
+  dir="$(mktemp -d)"
+  errors="$(cd "$dir" && STARSHIP_CONFIG="$config" starship prompt 2>&1 >/dev/null)"
+  rmdir "$dir"
+  [ -z "$errors" ] || { echo "$errors"; return 1; }
+}
 check "starship" starship --version
+check "starship outside the mise volume" test "$(command -v starship)" = /usr/local/bin/starship
 check "starship prompt in zsh, image config"  starship_config_is zsh default
 check "starship prompt in bash, image config" starship_config_is bash default
-check "image starship config is valid" bash -c 'starship print-config >/dev/null 2>&1 && test -r ~/.config/starship.toml'
+check "image starship config is valid" image_starship_config_valid
 check "project starship config replaces it" project_starship_config
+check "project starship config reaches child shells" project_config_reaches_child_shell
 
 for dir in "$HOME/.claude" "$HOME/.config/gh" "$HOME/.config/git" "$HOME/.local/share/mise" \
            "$HOME/.vscode-server/extensions" /commandhistory; do

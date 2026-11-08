@@ -26,7 +26,7 @@
   // (start from a copy: cp ~/.config/starship.toml .devcontainer/), the image's
   // default is used. New terminals pick up changes without a rebuild.
   "containerEnv": {
-    "STARSHIP_CONFIG": "${containerWorkspaceFolder}/.devcontainer/starship.toml"
+    "DEVCONTAINER_STARSHIP_CONFIG": "${containerWorkspaceFolder}/.devcontainer/starship.toml"
   }
 
   // Add project-specific features, ports and extensions below.

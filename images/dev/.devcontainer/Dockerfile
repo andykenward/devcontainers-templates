@@ -59,8 +59,7 @@ RUN set -eux; \
     echo '. "$HOME/.devcontainer-shellrc.sh"' >> ~/.zshrc
 
 # Global tools via mise (projects override with their own mise.toml/.nvmrc/.node-version):
-# Node.js, zizmor for auditing GitHub Actions workflows, and the Starship prompt
-# (configured in ~/.config/starship.toml). They live in
+# Node.js, and zizmor for auditing GitHub Actions workflows. They live in
 # ~/.config/mise/config.toml, so postCreate's `mise install` also puts them on
 # the shared mise volume.
 #
@@ -75,9 +74,20 @@ RUN set -eux; \
     mise settings set paranoid plugins; \
     mise settings set disable_backends asdf,vfox; \
     mise settings set idiomatic_version_file_enable_tools node; \
-    mise use --global "node@${NODE_VERSION}" zizmor@latest starship@latest; \
+    mise use --global "node@${NODE_VERSION}" zizmor@latest; \
     mise reshim; \
-    node --version; npm --version; zizmor --version; starship --version
+    node --version; npm --version; zizmor --version
+
+# Starship prompt (configured in ~/.config/starship.toml), in /usr/local/bin
+# rather than the mise data dir. That dir is the shared mise volume, and an
+# existing volume keeps its old content, so the prompt would only appear once
+# postCreate's `mise install` had run. mise still downloads and verifies it,
+# then forgets it so it isn't left in the image's copy of the volume.
+RUN set -eux; \
+    mise install starship@latest; \
+    sudo install -m 755 "$(mise where starship@latest)/starship" /usr/local/bin/starship; \
+    mise uninstall starship@latest; \
+    starship --version
 
 # The Claude Code CLI is not in the image: devcontainer-post-create installs the
 # newest release into ~/.local/bin on every create, so projects never start on a

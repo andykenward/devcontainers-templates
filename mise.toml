@@ -28,7 +28,6 @@ disable_backends = ["asdf", "vfox"]
 node = "lts"
 "npm:@devcontainers/cli" = "latest"
 shellcheck = "latest"
-starship = "latest"
 zizmor = "latest"
 
 [tasks.test]

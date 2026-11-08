@@ -9,10 +9,6 @@
 # Blank line before each prompt.
 add_newline = true
 
-# Time limit for the commands Starship runs to show versions (default 500 ms),
-# so slow-starting runtimes don't print "timed out" warnings.
-command_timeout = 1000
-
 # Every shell here is in a container, so the container indicator is noise.
 [container]
 disabled = true
@@ -30,13 +26,6 @@ disabled = false
 disabled = false
 
 # Terminals in containers rarely have a Nerd Font: use symbols that every font
-# has (Starship's no-nerd-font preset, for the modules likely to show here).
+# has (from Starship's no-nerd-font preset).
 [nodejs]
 symbol = "[⬢](bold green) "
-
-[battery]
-full_symbol = "• "
-charging_symbol = "⇡ "
-discharging_symbol = "⇣ "
-unknown_symbol = "❓ "
-empty_symbol = "❗ "

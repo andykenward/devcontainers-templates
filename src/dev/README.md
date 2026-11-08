@@ -53,7 +53,7 @@ To change the prompt for a project, copy the image's config into the project and
 cp ~/.config/starship.toml .devcontainer/starship.toml
 ```
 
-The template sets `STARSHIP_CONFIG` to `.devcontainer/starship.toml`, and that file is used once it exists. Open a new terminal to see changes; no rebuild needed. Starship reads only one config, so the project file replaces the image's instead of adding to it, and it no longer gets the image's updates. Delete it to go back to the image's config.
+The template sets `DEVCONTAINER_STARSHIP_CONFIG` to `.devcontainer/starship.toml`. Every new shell checks for that file and uses it (as `STARSHIP_CONFIG`) when it exists, so open a new terminal, or run `exec zsh`, to see changes; no rebuild needed. Starship reads only one config, so the project file replaces the image's instead of adding to it, and it no longer gets the image's updates. Delete it to go back to the image's config.
 
 If your host terminal has a Nerd Font, `starship preset nerd-font-symbols` in the project file gives you the icon set.
 
