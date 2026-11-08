@@ -14,7 +14,7 @@ A thin template on top of the prebuilt image `ghcr.io/andykenward/devcontainer-d
 | Option | Description | Default |
 | --- | --- | --- |
 | `imageVariant` | Image tag. A major version (`1`) gets compatible releases and the weekly rebuilds, but no breaking changes. Also `1.2` or `1.2.3` to pin further, `latest`, or an exact build such as `1.2.3-2026-11-07` | `1` |
-| `volumePrefix` | Prefix for the shared volumes. Projects with the same prefix share logins and tool installs | `devcontainer` |
+| `volumePrefix` | Prefix for the shared volumes. Projects with the same prefix share logins and git config | `devcontainer` |
 
 ## What persists across rebuilds
 
@@ -23,11 +23,13 @@ A thin template on top of the prebuilt image `ghcr.io/andykenward/devcontainer-d
 | `<prefix>-claude` | `~/.claude` (`CLAUDE_CONFIG_DIR`, which includes `.claude.json`) | shared |
 | `<prefix>-gh` | `~/.config/gh` | shared |
 | `<prefix>-git` | `~/.config/git` (git's own config file, `~/.config/git/config`) | shared |
-| `<prefix>-mise` | `~/.local/share/mise` (installed runtimes) | shared |
+| `<devcontainerId>-mise` | `~/.local/share/mise` (installed runtimes and tools) | per project |
 | `<devcontainerId>-history` | `/commandhistory` (bash and zsh history) | per project |
 | `<devcontainerId>-vscode-extensions` | `~/.vscode-server/extensions` | per project |
 
 Log in once (`claude`, `gh auth login`) and every container that uses the same prefix stays logged in.
+
+mise installs are per project, so one project's runtimes and tools never show up in, or get in the way of, another's. A new volume starts with the image's global tools (Node and zizmor), and postCreate installs whatever the project's own config asks for.
 
 Git settings work the same way. Write them to `~/.config/git/config` instead of `~/.gitconfig`, which the container recreates on every rebuild. For example, to sign commits with an SSH key from a forwarded agent (such as 1Password's):
 
