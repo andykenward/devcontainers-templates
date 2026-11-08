@@ -45,7 +45,7 @@ To start over, delete a volume, for example `docker volume rm devcontainer-claud
 
 ## Prompt
 
-bash and zsh both use the [Starship](https://starship.rs) prompt, configured by the image's `~/.config/starship.toml`. That config updates with image releases. It uses symbols that every font has, so no Nerd Font is needed.
+bash and zsh both use the [Starship](https://starship.rs) prompt, configured by the image's `~/.config/starship.toml`. That config updates with image releases. On top of Starship's defaults (git branch and status, runtime versions, command duration), it shows the exit code of a failed command, mise's health and the lines changed in git. It uses symbols that every font has, so no Nerd Font is needed.
 
 To change the prompt for a project, copy the image's config into the project and edit the copy:
 

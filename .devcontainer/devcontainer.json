@@ -27,9 +27,11 @@
 
   "postCreateCommand": "devcontainer-post-create",
 
-  // This repo's own Starship prompt, in place of the image's default.
+  // Use the image's Starship config straight from the working tree (the image
+  // only has a copy from when it was built), so edits to the default show in
+  // the next terminal without a rebuild.
   "containerEnv": {
-    "STARSHIP_CONFIG": "${containerWorkspaceFolder}/.devcontainer/starship.toml"
+    "STARSHIP_CONFIG": "${containerWorkspaceFolder}/images/dev/.devcontainer/starship.toml"
   },
 
   "customizations": {
