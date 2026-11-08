@@ -50,7 +50,7 @@ Two things follow from that:
 - **PR title** (`pr-title.yaml`): checks that PR titles are Conventional Commits.
 - **Test** (`test.yaml`): runs on PRs and pushes to `main`. Lints with ShellCheck and zizmor, builds the image locally, applies the template, runs `test/dev/test.sh`, rebuilds the container and checks that the volumes persisted.
 - **Release** (`release.yaml`): runs release-please on pushes to `main`. When a release is created, it calls Build image and then Release templates.
-- **Build image** (`build-image.yaml`): builds an image release for amd64 and arm64 and pushes its tags. It runs on release, every Monday (rebuilding the newest release of the current and previous major) and on demand.
+- **Build image** (`build-image.yaml`): builds an image release for amd64 and arm64, runs the template test against both, and only then pushes its tags. It runs on release, every Monday (rebuilding the newest release of the current and previous major) and on demand.
 - **Release templates** (`release-templates.yaml`): publishes the templates to GHCR. It runs on release and on demand.
 - **Dependabot** (`.github/dependabot.yml`): keeps the base image, devcontainer features and actions up to date each week.
 - **Upgrade tools** (`upgrade-tools.yaml`): runs daily. It bumps the repo's mise tools in `mise.lock` (Dependabot can't read mise files), runs lint and the template test with them, and opens or updates a `mise-upgrade` PR when they pass.

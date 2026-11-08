@@ -131,12 +131,15 @@ check "project starship config replaces it" project_starship_config
 check "project starship config reaches child shells" project_config_reaches_child_shell
 
 # A project config that mise can't install must not stop postCreate from
-# installing Claude Code and setting up git.
+# installing Claude Code and setting up git. The warning proves mise really
+# failed, so the test can't pass without reaching that branch.
 post_create_survives_mise_failure() {
-  local dir ok
+  local dir out ok
   dir="$(mktemp -d "$PWD/.broken-mise.XXXXXX")"
   printf '[tools]\n"aqua:devcontainer-test/does-not-exist" = "1.0.0"\n' > "$dir/mise.toml"
-  (cd "$dir" && devcontainer-post-create) && claude --version; ok=$?
+  out="$(cd "$dir" && devcontainer-post-create 2>&1)" &&
+    grep -q 'WARNING: mise install failed' <<<"$out" && claude --version; ok=$?
+  [ "$ok" -eq 0 ] || echo "$out"
   rm -rf "$dir"
   return "$ok"
 }
