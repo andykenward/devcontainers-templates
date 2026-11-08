@@ -27,6 +27,13 @@
 
   "postCreateCommand": "devcontainer-post-create",
 
+  // Use the image's Starship config straight from the working tree (the image
+  // only has a copy from when it was built), so edits to the default show in
+  // the next terminal without a rebuild.
+  "containerEnv": {
+    "STARSHIP_CONFIG": "${containerWorkspaceFolder}/images/dev/.devcontainer/starship.toml"
+  },
+
   "customizations": {
     "vscode": {
       "extensions": [

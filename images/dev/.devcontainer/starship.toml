@@ -1,0 +1,31 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Default Starship prompt for the dev image, in bash and zsh. Updates with image
+# releases. To change it for a project, copy this file to the project's
+# .devcontainer/starship.toml and edit the copy: Starship reads one config, so
+# the copy replaces this file rather than adding to it.
+# Options: https://starship.rs/config/
+
+# Blank line before each prompt.
+add_newline = true
+
+# Every shell here is in a container, so the container indicator is noise.
+[container]
+disabled = true
+
+# Exit code of the last command when it fails.
+[status]
+disabled = false
+
+# mise health (untrusted config, missing tools), in folders with a mise config.
+[mise]
+disabled = false
+
+# Lines added and removed in the git working tree.
+[git_metrics]
+disabled = false
+
+# Terminals in containers rarely have a Nerd Font: use symbols that every font
+# has (from Starship's no-nerd-font preset).
+[nodejs]
+symbol = "[⬢](bold green) "

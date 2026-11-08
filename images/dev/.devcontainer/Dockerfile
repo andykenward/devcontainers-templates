@@ -1,4 +1,5 @@
-# Prebuilt dev image: mise (Node.js + any other runtimes), GitHub CLI, zizmor.
+# Prebuilt dev image: mise (Node.js + any other runtimes), GitHub CLI, zizmor,
+# Starship prompt.
 # The Claude Code CLI is installed at create time by devcontainer-post-create.
 # Built and published by .github/workflows/build-image.yaml.
 # Base image is pinned to an exact version so Dependabot can bump it.
@@ -47,10 +48,12 @@ RUN set -eux; \
 
 COPY --chmod=755 devcontainer-post-create.sh /usr/local/bin/devcontainer-post-create
 COPY --chown=${USERNAME}:${USERNAME} shellrc.sh /home/${USERNAME}/.devcontainer-shellrc.sh
+COPY --chown=${USERNAME}:${USERNAME} starship.toml /home/${USERNAME}/.config/starship.toml
 
 USER ${USERNAME}
 
-# Shell integration: mise activation + persistent history for bash and zsh.
+# Shell integration for bash and zsh: mise activation, persistent history and
+# the Starship prompt.
 RUN set -eux; \
     echo '. "$HOME/.devcontainer-shellrc.sh"' >> ~/.bashrc; \
     echo '. "$HOME/.devcontainer-shellrc.sh"' >> ~/.zshrc
@@ -75,6 +78,17 @@ RUN set -eux; \
     mise reshim; \
     node --version; npm --version; zizmor --version
 
+# Starship prompt (configured in ~/.config/starship.toml), in /usr/local/bin
+# rather than the mise data dir. That dir is the shared mise volume, and an
+# existing volume keeps its old content, so the prompt would only appear once
+# postCreate's `mise install` had run. mise still downloads and verifies it,
+# then forgets it so it isn't left in the image's copy of the volume.
+RUN set -eux; \
+    mise install starship@latest; \
+    sudo install -m 755 "$(mise where starship@latest)/starship" /usr/local/bin/starship; \
+    mise uninstall starship@latest; \
+    starship --version
+
 # The Claude Code CLI is not in the image: devcontainer-post-create installs the
 # newest release into ~/.local/bin on every create, so projects never start on a
 # stale version.
@@ -87,6 +101,6 @@ USER root
 # IMAGE_VERSION is passed by build-image.yaml; "dev" for local and test builds.
 ARG IMAGE_VERSION=dev
 LABEL org.opencontainers.image.title="devcontainer-dev" \
-      org.opencontainers.image.description="Dev container image: mise, GitHub CLI, zizmor; Claude Code installed on create" \
+      org.opencontainers.image.description="Dev container image: mise, GitHub CLI, zizmor, Starship; Claude Code installed on create" \
       org.opencontainers.image.source="https://github.com/andykenward/devcontainers-templates" \
       org.opencontainers.image.version="${IMAGE_VERSION}"
