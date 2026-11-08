@@ -8,6 +8,8 @@ A thin template on top of the prebuilt image `ghcr.io/andykenward/devcontainer-d
 - **zizmor**: audits GitHub Actions workflows for security problems (`zizmor .`)
 - **Starship** prompt in bash and zsh (see [Prompt](#prompt))
 - zsh with Oh My Zsh, git, and the usual base image tools
+- VS Code extensions for GitHub pull requests, GitHub Actions and mise
+- An init process (`init`) as PID 1, which reaps zombie processes and forwards signals
 
 ## Options
 
@@ -45,6 +47,29 @@ git config --file ~/.config/git/config commit.gpgsign true
 
 To start over, delete a volume, for example `docker volume rm devcontainer-claude`.
 
+### Untrusted code
+
+Every container with the same prefix gets your Claude Code login, GitHub CLI token and git config, including signing. Code that runs in the container, such as a cloned repo's install scripts, can use them. To open a repo you don't trust, give it its own `volumePrefix` (for example `untrusted`), so it starts logged out and its logins stay apart from your own.
+
+### Cleaning up volumes
+
+Removing a container leaves its volumes behind, and the per-project ones are named after a hash (`devcontainerId`), not the project folder. The mise volume holds every runtime the project installed, so it can be large. Run these on the host. To see which project each volume belongs to while its container still exists:
+
+```sh
+for c in $(docker ps -aq --filter label=devcontainer.local_folder); do
+  docker inspect -f '{{index .Config.Labels "devcontainer.local_folder"}}' "$c"
+  docker inspect -f '{{range .Mounts}}{{if eq .Type "volume"}}  {{.Name}}{{"\n"}}{{end}}{{end}}' "$c"
+done
+```
+
+To list volumes that no container uses any more, such as a deleted project's:
+
+```sh
+docker volume ls --filter dangling=true
+```
+
+That list also has the shared volumes when no container uses them, and volumes from outside dev containers, so check names before removing any: `docker volume rm <name>`.
+
 ## Prompt
 
 bash and zsh both use the [Starship](https://starship.rs) prompt, configured by the image's `~/.config/starship.toml`. That config updates with image releases. On top of Starship's defaults (git branch and status, runtime versions, command duration), it shows the exit code of a failed command, mise's health and the lines changed in git. It uses symbols that every font has, so no Nerd Font is needed.
@@ -58,6 +83,10 @@ cp ~/.config/starship.toml .devcontainer/starship.toml
 The template sets `DEVCONTAINER_STARSHIP_CONFIG` to `.devcontainer/starship.toml`. Every new shell checks for that file and uses it (as `STARSHIP_CONFIG`) when it exists, so open a new terminal, or run `exec zsh`, to see changes; no rebuild needed. Starship reads only one config, so the project file replaces the image's instead of adding to it, and it no longer gets the image's updates. Delete it to go back to the image's config.
 
 If your host terminal has a Nerd Font, `starship preset nerd-font-symbols` in the project file gives you the icon set.
+
+## mise in terminals, tasks and tools
+
+Terminal shells run `mise activate`, so the project's `[env]` and hooks apply as you `cd`. Everything else (VS Code tasks and extensions, `devcontainer exec`, scripts) uses mise's shims, which pick each tool's version for the folder it runs in, but don't set the `[env]` values. Use `mise exec --` or `mise run` when a command needs them.
 
 ## mise security
 
