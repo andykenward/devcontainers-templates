@@ -126,6 +126,18 @@ check "image starship config is valid" image_starship_config_valid
 check "project starship config replaces it" project_starship_config
 check "project starship config reaches child shells" project_config_reaches_child_shell
 
+# A project config that mise can't install must not stop postCreate from
+# installing Claude Code and setting up git.
+post_create_survives_mise_failure() {
+  local dir ok
+  dir="$(mktemp -d "$PWD/.broken-mise.XXXXXX")"
+  printf '[tools]\n"aqua:devcontainer-test/does-not-exist" = "1.0.0"\n' > "$dir/mise.toml"
+  (cd "$dir" && devcontainer-post-create) && claude --version; ok=$?
+  rm -rf "$dir"
+  return "$ok"
+}
+check "postCreate continues after a failed mise install" post_create_survives_mise_failure
+
 for dir in "$HOME/.claude" "$HOME/.config/gh" "$HOME/.config/git" "$HOME/.local/share/mise" \
            "$HOME/.vscode-server/extensions" /commandhistory; do
   check "writable $dir" bash -c "touch '$dir/.write-test' && rm '$dir/.write-test'"

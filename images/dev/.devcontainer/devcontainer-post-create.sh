@@ -27,8 +27,13 @@ if command -v mise >/dev/null 2>&1; then
   # anywhere else, such as other repos cloned into the container, still need
   # `mise trust` before their env, hooks and tasks run.
   mise trust --yes --quiet . 2>/dev/null || true
-  mise install --yes
-  mise reshim
+  # A failed install (offline, a tool with no build for this platform, a typo
+  # in the project's config) must not stop the steps below: Claude Code and
+  # git's credentials don't depend on the project's tools.
+  if ! mise install --yes; then
+    echo "WARNING: mise install failed. Fix the project's mise config, then run mise install." >&2
+  fi
+  mise reshim || true
 fi
 
 # Claude Code CLI: installed here rather than in the image, so every create or
