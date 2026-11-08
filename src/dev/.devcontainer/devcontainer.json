@@ -29,7 +29,9 @@
     "DEVCONTAINER_STARSHIP_CONFIG": "${containerWorkspaceFolder}/.devcontainer/starship.toml"
   }
 
-  // Add project-specific features, ports and extensions below.
+  // Add project-specific features, ports and extensions below. For example,
+  // Docker inside the container (see https://containers.dev/features for more):
+  // "features": { "ghcr.io/devcontainers/features/docker-in-docker:4": {} },
   // "forwardPorts": [3000],
   // "customizations": { "vscode": { "extensions": [] } }
 }
