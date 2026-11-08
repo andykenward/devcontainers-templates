@@ -13,6 +13,9 @@
     "ghcr.io/devcontainers/features/docker-in-docker:4": {}
   },
   "remoteUser": "vscode",
+  // Built from the Dockerfile, so the image's devcontainer.json settings (such
+  // as init) don't apply here unless repeated.
+  "init": true,
 
   // Same persistence as the template: shared logins and git config,
   // per-project tool installs, history and extensions.
@@ -40,6 +43,7 @@
         "anthropic.claude-code",
         "github.vscode-pull-request-github",
         "github.vscode-github-actions",
+        "hverlin.mise-vscode",
         "ms-azuretools.vscode-containers",
         "timonwong.shellcheck",
         // Validate mise.toml (#:schema) and YAML files (yaml-language-server).

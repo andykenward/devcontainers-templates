@@ -23,6 +23,10 @@ check "node via interactive zsh"  zsh -ic 'node --version'
 check "node via interactive bash" bash -ic 'node --version'
 check "CLAUDE_CONFIG_DIR is set" test "${CLAUDE_CONFIG_DIR:-}" = "$HOME/.claude"
 
+# init: true in the image metadata puts an init process (tini) in front.
+pid1_is_init() { case "$(cat /proc/1/comm)" in docker-init|tini) ;; *) cat /proc/1/comm; return 1 ;; esac; }
+check "init process is PID 1" pid1_is_init
+
 # mise hardening from the image's global config.
 mise_setting_is() { [ "$(mise settings get "$1")" = "$2" ]; }
 no_auto_trust() {
