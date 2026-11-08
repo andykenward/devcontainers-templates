@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/andykenward/devcontainers-templates/compare/template-v1.2.1...template-v1.3.0) (2026-11-08)
+
+
+### Features
+
+* add the starship prompt with per-project config ([#22](https://github.com/andykenward/devcontainers-templates/issues/22)) ([b4d3a13](https://github.com/andykenward/devcontainers-templates/commit/b4d3a13d8f6f380904b1f2471a0d39eb0c45f9a0))
+
 ## [1.2.1](https://github.com/andykenward/devcontainers-templates/compare/template-v1.2.0...template-v1.2.1) (2026-11-07)
 
 
