@@ -20,7 +20,14 @@
   // Fixes volume ownership, runs `mise install` for the project's tools and
   // wires git up to gh credentials when logged in (skipped when a forwarded
   // SSH agent has a key, so git uses SSH instead).
-  "postCreateCommand": "devcontainer-post-create"
+  "postCreateCommand": "devcontainer-post-create",
+
+  // Starship prompt config. Until the project adds .devcontainer/starship.toml
+  // (start from a copy: cp ~/.config/starship.toml .devcontainer/), the image's
+  // default is used. New terminals pick up changes without a rebuild.
+  "containerEnv": {
+    "STARSHIP_CONFIG": "${containerWorkspaceFolder}/.devcontainer/starship.toml"
+  }
 
   // Add project-specific features, ports and extensions below.
   // "forwardPorts": [3000],

@@ -6,6 +6,7 @@ A thin template on top of the prebuilt image `ghcr.io/andykenward/devcontainer-d
 - **Claude Code CLI** (`claude`), installed fresh on every create (see [Claude Code versions](#claude-code-versions)), and the Claude Code VS Code extension
 - **GitHub CLI** (`gh`)
 - **zizmor**: audits GitHub Actions workflows for security problems (`zizmor .`)
+- **Starship** prompt in bash and zsh (see [Prompt](#prompt))
 - zsh with Oh My Zsh, git, and the usual base image tools
 
 ## Options
@@ -41,6 +42,20 @@ git config --file ~/.config/git/config commit.gpgsign true
 `~/.gitconfig` is read after `~/.config/git/config`, so anything VS Code copies there from your host's `~/.gitconfig` wins. In particular, a host `gpg.ssh.program` that points at a macOS app breaks signing in the container. Remove it from the host config or override it in `~/.gitconfig`.
 
 To start over, delete a volume, for example `docker volume rm devcontainer-claude`.
+
+## Prompt
+
+bash and zsh both use the [Starship](https://starship.rs) prompt, configured by the image's `~/.config/starship.toml`. That config updates with image releases. It uses symbols that every font has, so no Nerd Font is needed.
+
+To change the prompt for a project, copy the image's config into the project and edit the copy:
+
+```sh
+cp ~/.config/starship.toml .devcontainer/starship.toml
+```
+
+The template sets `STARSHIP_CONFIG` to `.devcontainer/starship.toml`, and that file is used once it exists. Open a new terminal to see changes; no rebuild needed. Starship reads only one config, so the project file replaces the image's instead of adding to it, and it no longer gets the image's updates. Delete it to go back to the image's config.
+
+If your host terminal has a Nerd Font, `starship preset nerd-font-symbols` in the project file gives you the icon set.
 
 ## mise security
 

@@ -4,7 +4,7 @@ My personal [dev container](https://containers.dev) setup: a **prebuilt image** 
 
 | Path | What |
 | --- | --- |
-| `images/dev/` | The prebuilt image (mise + Node, GitHub CLI, zizmor; Claude Code is installed on create), published as `ghcr.io/andykenward/devcontainer-dev` |
+| `images/dev/` | The prebuilt image (mise + Node, GitHub CLI, zizmor, Starship; Claude Code is installed on create), published as `ghcr.io/andykenward/devcontainer-dev` |
 | `src/dev/` | The `dev` template, published as `ghcr.io/andykenward/devcontainers-templates/dev`. See [its README](src/dev/README.md) |
 | `test/dev/` | Checks that run inside a container created from the template |
 | `.devcontainer/` | Dev container for working on this repo (builds the image locally and adds Docker-in-Docker) |
@@ -38,12 +38,12 @@ The template's `imageVariant` defaults to the image's major version (`1`), so pr
 
 ### Why the image is rebuilt weekly
 
-The Dockerfile pins the base image tag and the Node major, but installs the base image's package updates, mise, gh, zizmor and Node patch releases at whatever version is current, and Dependabot can't bump those. The Monday **Build image** run is how they refresh: it rebuilds the newest release of the current major and of the previous one without the layer cache, and moves the version tags to the fresh builds. Projects on `1` get security updates without a new release, and projects still on the previous major keep getting them until the major after next is released.
+The Dockerfile pins the base image tag and the Node major, but installs the base image's package updates, mise, gh, zizmor, Starship and Node patch releases at whatever version is current, and Dependabot can't bump those. The Monday **Build image** run is how they refresh: it rebuilds the newest release of the current major and of the previous one without the layer cache, and moves the version tags to the fresh builds. Projects on `1` get security updates without a new release, and projects still on the previous major keep getting them until the major after next is released.
 
 Two things follow from that:
 
 - A version tag is not a fixed build. `1.0.0` means release 1.0.0 as last built. To pin an exact build, use its dated tag, such as `1.2.3-2026-11-07`. A rebuild of the same release on the same day replaces it.
-- `1` promises no breaking change to the image itself. A rebuild can still move mise or zizmor to a new major, since those follow their own releases. Node is pinned to a major so a new LTS line only arrives with a new image major.
+- `1` promises no breaking change to the image itself. A rebuild can still move mise, zizmor or Starship to a new major, since those follow their own releases. Node is pinned to a major so a new LTS line only arrives with a new image major.
 
 ## Workflows
 

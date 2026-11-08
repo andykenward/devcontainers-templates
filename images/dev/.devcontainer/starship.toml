@@ -1,0 +1,26 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Default Starship prompt for the dev image, in bash and zsh. Updates with image
+# releases. To change it for a project, copy this file to the project's
+# .devcontainer/starship.toml and edit the copy: Starship reads one config, so
+# the copy replaces this file rather than adding to it.
+# Options: https://starship.rs/config/
+
+# Blank line before each prompt.
+add_newline = true
+
+# Every shell here is in a container, so the container indicator is noise.
+[container]
+disabled = true
+
+# Terminals in containers rarely have a Nerd Font: use symbols that every font
+# has (Starship's no-nerd-font preset, for the modules likely to show here).
+[nodejs]
+symbol = "[⬢](bold green) "
+
+[battery]
+full_symbol = "• "
+charging_symbol = "⇡ "
+discharging_symbol = "⇣ "
+unknown_symbol = "❓ "
+empty_symbol = "❗ "

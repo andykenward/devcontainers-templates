@@ -29,3 +29,19 @@ if [ -d /commandhistory ] && [ -w /commandhistory ]; then
     esac
   fi
 fi
+
+# Starship prompt, the same in bash and zsh, replacing the base image's prompt.
+# The image's config (~/.config/starship.toml) updates with image releases. A
+# project can replace it: the template sets STARSHIP_CONFIG to the project's
+# .devcontainer/starship.toml, used only when that file exists. Starship can't
+# merge configs, so start a project file from a copy of the image's.
+if [ -n "${STARSHIP_CONFIG:-}" ] && [ ! -r "$STARSHIP_CONFIG" ]; then
+  unset STARSHIP_CONFIG
+fi
+if command -v starship >/dev/null 2>&1; then
+  if [ -n "${ZSH_VERSION:-}" ]; then
+    eval "$(starship init zsh)"
+  elif [ -n "${BASH_VERSION:-}" ]; then
+    eval "$(starship init bash)"
+  fi
+fi
