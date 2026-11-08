@@ -1,0 +1,7 @@
+# Project config for the template test, copied to the workspace root. postCreate
+# must trust it and install its tools.
+[tools]
+yq = "latest"
+
+[env]
+DEVCONTAINER_TEST_ENV = "trusted"

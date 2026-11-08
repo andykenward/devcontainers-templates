@@ -43,6 +43,27 @@ check "mise asdf/vfox backends disabled" mise_setting_is disable_backends '["asd
 check "no auto-trusted config paths"     no_auto_trust
 check "config outside the project is not trusted" untrusted_config_ignored
 
+# The project's own config (test/dev/workspace, copied to the workspace root):
+# postCreate trusts it and installs what it asks for.
+node_major_is() { [ "$(node --version | cut -d. -f1)" = "v$1" ]; }
+mise_installed() { mise which "$1" | grep -q "^${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/"; }
+project_env_loaded() { mise env -s bash | grep -q 'DEVCONTAINER_TEST_ENV=trusted'; }
+# Run here through `devcontainer exec`, whose environment comes from VS Code's
+# kind of user env probe: the project's Node must win over the image's.
+check "project .nvmrc picks the Node major" node_major_is "$(cat .nvmrc)"
+# Terminal shells still activate mise (env, hooks); `script` gives them a tty.
+# shellcheck disable=SC2016 # expand inside the shells
+mise_activated_in_terminal() {
+  script -qec "$1 -ic 'echo mise-shell=\$MISE_SHELL; node --version'" /dev/null |
+    tr -d '\r' | grep -qx "mise-shell=$1" || return 1
+  script -qec "$1 -ic 'node --version'" /dev/null | tr -d '\r' | grep -q "^v$(cat .nvmrc)\."
+}
+check "mise activated in a zsh terminal"  mise_activated_in_terminal zsh
+check "mise activated in a bash terminal" mise_activated_in_terminal bash
+check "project mise.toml tool installed"    mise_installed yq
+check "project mise.toml tool runs"         yq --version
+check "project config trusted (env loaded)" project_env_loaded
+
 # Starship prompt in both shells: the image's config by default, the project's
 # .devcontainer/starship.toml (the template's DEVCONTAINER_STARSHIP_CONFIG)
 # whenever it exists. Prints "starship-config=<config>" only when Starship is

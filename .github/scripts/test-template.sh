@@ -36,7 +36,12 @@ cp -R "$src/." "$workspace/"
 chmod 755 "$workspace"
 rm -f "$workspace/devcontainer-template.json" "$workspace/README.md" "$workspace/NOTES.md"
 mkdir -p "$workspace/test-project"
-cp -R "$root/test/$id/." "$workspace/test-project/"
+cp "$root/test/$id/test.sh" "$workspace/test-project/"
+# Project files (mise.toml, .nvmrc, ...) go in the workspace root, where a real
+# project keeps them and postCreate looks for them.
+if [ -d "$root/test/$id/workspace" ]; then
+  cp -R "$root/test/$id/workspace/." "$workspace/"
+fi
 
 # Substitute ${templateOption:x} with each option's default, except the image
 # tag: the test runs against the image built locally as :local (override with
