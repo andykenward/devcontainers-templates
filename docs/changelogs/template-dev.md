@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/andykenward/devcontainers-templates/compare/template-v1.3.0...template-v2.0.0) (2026-11-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **template:** volumePrefix no longer covers mise installs; new projects no longer share runtimes and tools. Existing projects keep their copy of the template until they change the mount themselves.
+
+### Features
+
+* **template:** give each project its own mise volume ([#25](https://github.com/andykenward/devcontainers-templates/issues/25)) ([11ed3a1](https://github.com/andykenward/devcontainers-templates/commit/11ed3a1e80d96cefc323e69a654810669001050d))
+
 ## [1.3.0](https://github.com/andykenward/devcontainers-templates/compare/template-v1.2.1...template-v1.3.0) (2026-11-08)
 
 

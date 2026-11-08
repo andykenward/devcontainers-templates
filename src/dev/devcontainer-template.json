@@ -1,6 +1,6 @@
 {
   "id": "dev",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "name": "Dev (mise, Claude Code, GitHub CLI)",
   "description": "Thin template on a prebuilt image with mise (Node.js and other runtimes), the Claude Code CLI, the GitHub CLI and the Starship prompt. Logins, settings, tool installs and shell history persist across rebuilds in named volumes.",
   "documentationURL": "https://github.com/andykenward/devcontainers-templates/tree/main/src/dev",
