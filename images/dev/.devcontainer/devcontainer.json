@@ -15,12 +15,17 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "remoteUser": "vscode",
+  // Run tini as PID 1 so it reaps the zombie processes left by tools that start
+  // many children (Claude Code, language servers, test runners) and passes
+  // signals on to them.
+  "init": true,
   "customizations": {
     "vscode": {
       "extensions": [
         "anthropic.claude-code",
         "github.vscode-pull-request-github",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "hverlin.mise-vscode"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh"
