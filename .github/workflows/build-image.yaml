@@ -168,62 +168,12 @@ jobs:
           mkdir -p digests
           echo "$digest" > "digests/${ARCH}"
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: digest-${{ matrix.release.version }}-${{ matrix.platform.arch }}
-          path: digests/${{ matrix.platform.arch }}
-          if-no-files-found: error
-          retention-days: 1
-
-  # Runs the template test against each pushed platform image before any tag
-  # points at it. The rebuilds pick up new mise, Starship, gh, zizmor and Node
-  # releases that no PR has tested, and the Dockerfile only checks --version.
-  # The release's own test files are used, so a rebuild of the previous major
-  # is held to what that release promised. A pass leaves a tested-<arch> file
-  # with the digest, which merge requires.
-  test:
-    name: test ${{ matrix.release.tag }} ${{ matrix.platform.arch }}
-    needs: [version, build]
-    if: ${{ !cancelled() && needs.version.outputs.matrix != '[]' }}
-    runs-on: ${{ matrix.platform.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        release: ${{ fromJSON(needs.version.outputs.matrix) }}
-        platform:
-          - { arch: amd64, runner: ubuntu-24.04 }
-          - { arch: arm64, runner: ubuntu-24.04-arm }
-    permissions:
-      contents: read
-      packages: read # pull the image by digest
-    steps:
-      # Tools (mise.toml, mise.lock) from this run's commit, the test files
-      # from the release's tag, as in the build job.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ matrix.release.tag }}
-          path: release
-          persist-credentials: false
-
-      # Provides the devcontainer CLI from mise.toml.
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
-
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: digest-${{ matrix.release.version }}-${{ matrix.platform.arch }}
-          path: digests
-
-      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # test-template.sh runs the template against the :local tag.
+      # The template test against the image just pushed, before any tag points
+      # at it: rebuilds pick up new mise, Starship, gh, zizmor and Node releases
+      # that no PR has tested, and the Dockerfile only checks --version. The
+      # release's own test files hold a rebuild of the previous major to what
+      # that release promised. A failure stops the digest upload below, so
+      # merge has nothing to tag. test-template.sh runs the :local tag.
       - name: Test template
         env:
           ARCH: ${{ matrix.platform.arch }}
@@ -232,24 +182,23 @@ jobs:
           docker pull "${IMAGE_NAME}@${digest}"
           docker tag "${IMAGE_NAME}@${digest}" "${IMAGE_NAME}:local"
           release/.github/scripts/test-template.sh dev
-          echo "$digest" > "digests/tested-${ARCH}"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: digest-${{ matrix.release.version }}-tested-${{ matrix.platform.arch }}
-          path: digests/tested-${{ matrix.platform.arch }}
+          name: digest-${{ matrix.release.version }}-${{ matrix.platform.arch }}
+          path: digests/${{ matrix.platform.arch }}
           if-no-files-found: error
           retention-days: 1
 
   # Tags each release's two platform images together as one multi-platform
-  # image. Runs even if another release's build or test failed (fail-fast is
-  # off), and fails for a release missing either platform or its passed test,
-  # so nothing is published half built or untested. Only registry calls, so
-  # ubuntu-slim: it has the Docker CLI and buildx but no daemon, and neither
-  # `docker login` nor imagetools needs one.
+  # image. Runs even if another release's build failed (fail-fast is off), and
+  # fails for a release missing either platform's tested build, so nothing is
+  # published half built or untested. Only registry calls, so ubuntu-slim: it
+  # has the Docker CLI and buildx but no daemon, and neither `docker login`
+  # nor imagetools needs one.
   merge:
     name: merge ${{ matrix.tag }}
-    needs: [version, build, test]
+    needs: [version, build]
     if: ${{ !cancelled() && needs.version.outputs.matrix != '[]' }}
     runs-on: ubuntu-slim
     strategy:
@@ -289,11 +238,7 @@ jobs:
           sources=()
           for arch in amd64 arm64; do
             if [ ! -s "digests/${arch}" ]; then
-              echo "::error::No linux/${arch} build to publish"
-              exit 1
-            fi
-            if [ "$(cat "digests/tested-${arch}" 2>/dev/null)" != "$(cat "digests/${arch}")" ]; then
-              echo "::error::The linux/${arch} build didn't pass the template test"
+              echo "::error::No tested linux/${arch} build to publish"
               exit 1
             fi
             sources+=("${IMAGE_NAME}@$(cat "digests/${arch}")")
