@@ -44,10 +44,17 @@ if [ -n "${DEVCONTAINER_STARSHIP_CONFIG:-}" ]; then
     unset STARSHIP_CONFIG
   fi
 fi
-if command -v starship >/dev/null 2>&1; then
+# Use the image's binary by path: the mise shims come first on PATH, and a
+# starship shim left on the shared mise volume (from a mise install that no
+# config uses any more) fails instead of falling through to this one. The init
+# script calls Starship by the path it was started from.
+devcontainer_starship=/usr/local/bin/starship
+[ -x "$devcontainer_starship" ] || devcontainer_starship="$(command -v starship 2>/dev/null)"
+if [ -n "$devcontainer_starship" ]; then
   if [ -n "${ZSH_VERSION:-}" ]; then
-    eval "$(starship init zsh)"
+    eval "$("$devcontainer_starship" init zsh)"
   elif [ -n "${BASH_VERSION:-}" ]; then
-    eval "$(starship init bash)"
+    eval "$("$devcontainer_starship" init bash)"
   fi
 fi
+unset devcontainer_starship
