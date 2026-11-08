@@ -145,6 +145,28 @@ post_create_survives_mise_failure() {
 }
 check "postCreate continues after a failed mise install" post_create_survives_mise_failure
 
+# With gh logged in and no SSH agent, postCreate sets gh up as git's
+# credential helper. It must land in ~/.gitconfig, which each rebuild
+# recreates, not in ~/.config/git/config on the shared volume. git writes
+# --global there when ~/.gitconfig doesn't exist, as in this throwaway HOME.
+# The fake gh reports a login and writes the helper the way gh does; the bad
+# CLAUDE_CODE_VERSION skips the Claude Code download.
+# shellcheck disable=SC2016 # expand inside the fake gh
+gh_helper_stays_off_shared_volume() {
+  local tmp ok
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/bin" "$tmp/home/.config/git"
+  : > "$tmp/home/.config/git/config"
+  printf '#!/bin/sh\n[ "$1 $2" = "auth setup-git" ] && git config --global credential.helper gh-test\nexit 0\n' > "$tmp/bin/gh"
+  chmod +x "$tmp/bin/gh"
+  (cd "$tmp" && HOME="$tmp/home" PATH="$tmp/bin:$PATH" SSH_AUTH_SOCK='' CLAUDE_CODE_VERSION=0.0.0-none \
+    devcontainer-post-create >/dev/null 2>&1)
+  ! grep -q gh-test "$tmp/home/.config/git/config" && grep -q gh-test "$tmp/home/.gitconfig"; ok=$?
+  rm -rf "$tmp"
+  return "$ok"
+}
+check "gh credential helper stays off the shared git volume" gh_helper_stays_off_shared_volume
+
 for dir in "$HOME/.claude" "$HOME/.config/gh" "$HOME/.config/git" "$HOME/.local/share/mise" \
            "$HOME/.vscode-server/extensions" /commandhistory; do
   check "writable $dir" bash -c "touch '$dir/.write-test' && rm '$dir/.write-test'"
