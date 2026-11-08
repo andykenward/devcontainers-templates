@@ -1,8 +1,15 @@
 # shellcheck shell=bash
 # Sourced from ~/.bashrc and ~/.zshrc (added by the dev image).
 
-# mise: activate for interactive shells (shims on PATH cover non-interactive use).
-if command -v mise >/dev/null 2>&1; then
+# mise: activate only in shells attached to a terminal. VS Code and the
+# devcontainer CLI take the environment for tasks, extensions and
+# `devcontainer exec` from an interactive login shell whose output they
+# capture. Activated there, it would put the global tools' install dirs
+# (resolved from wherever that shell started) ahead of the shims on PATH, and
+# every process started from that environment would get, say, the image's Node
+# instead of the project's .nvmrc. Without a terminal, the shims on PATH pick
+# each tool's version for the current folder instead.
+if command -v mise >/dev/null 2>&1 && [ -t 1 ]; then
   if [ -n "${ZSH_VERSION:-}" ]; then
     eval "$(mise activate zsh)"
   elif [ -n "${BASH_VERSION:-}" ]; then
