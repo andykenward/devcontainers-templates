@@ -40,7 +40,7 @@ jobs:
           name: ${{ inputs.lock-artifact }}
 
       # Installs the tools in mise.toml and runs the same lint task as locally.
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
 
       # GH_TOKEN turns on zizmor's online audits (known-vulnerable actions etc.).
       - run: mise run lint
@@ -60,7 +60,7 @@ jobs:
           name: ${{ inputs.lock-artifact }}
 
       # Provides the devcontainer CLI from mise.toml.
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
 
       - name: Build image locally
         run: |
