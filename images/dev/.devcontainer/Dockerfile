@@ -3,7 +3,7 @@
 # The Claude Code CLI is installed at create time by devcontainer-post-create.
 # Built and published by .github/workflows/build-image.yaml.
 # Base image is pinned to an exact version so Dependabot can bump it.
-FROM mcr.microsoft.com/devcontainers/base:3.0.12-ubuntu24.04
+FROM mcr.microsoft.com/devcontainers/base:3.0.13-ubuntu24.04
 
 ARG USERNAME=vscode
 # Node major. Pinned so a weekly rebuild can't move projects to a new LTS line
