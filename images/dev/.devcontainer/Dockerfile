@@ -52,6 +52,12 @@ COPY --chown=${USERNAME}:${USERNAME} starship.toml /home/${USERNAME}/.config/sta
 
 USER ${USERNAME}
 
+# Cooldown for the tools mise installs below (Node, zizmor, Starship): "latest"
+# and "26" only resolve to releases at least 7 days old, like Dependabot's and
+# Renovate's, so a compromised or broken release has time to be pulled. An ARG,
+# not ENV, so it applies to the build only and isn't left in users' containers.
+ARG MISE_MINIMUM_RELEASE_AGE=7d
+
 # Shell integration for bash and zsh: mise activation, persistent history and
 # the Starship prompt.
 RUN set -eux; \
