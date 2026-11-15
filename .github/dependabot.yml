@@ -2,7 +2,8 @@
 #
 # Keeps pinned dependencies current. Things installed from "latest" installers
 # (mise, Node patch releases, gh, zizmor) are refreshed by the weekly image
-# rebuild in .github/workflows/build-image.yaml instead.
+# rebuild in .github/workflows/build-image.yaml instead. Renovate (renovate.json)
+# covers what Dependabot can't read: mise.toml and the Dockerfile's Node major.
 #
 # The cooldown waits a week after a release before proposing it, so a
 # compromised or broken release has time to be caught and pulled.

@@ -1,6 +1,60 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "description": "Only what Dependabot (.github/dependabot.yml) can't update: the repo's mise tools, the mise version CI installs and the Node major pinned in the image's Dockerfile. Everything else is off so the two bots never open duplicate PRs.",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["mise", "github-actions", "custom.regex"],
+  "minimumReleaseAge": "7 days",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "ARG NODE_VERSION in the image Dockerfile (a major only, e.g. 26)",
+      "managerFilePatterns": ["/^images/dev/\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG NODE_VERSION=(?<currentValue>\\d+)\\b"],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "versioningTemplate": "node"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Repo tooling in mise.toml (Renovate regenerates mise.lock). Doesn't touch the image or template, so it never releases.",
+      "matchManagers": ["mise"],
+      "matchFileNames": ["mise.toml"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Dependabot bumps the actions themselves; Renovate only takes the mise version passed to jdx/mise-action.",
+      "matchManagers": ["github-actions"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["jdx/mise"],
+      "matchDatasources": ["github-release-attachments"],
+      "enabled": true,
+      "semanticCommitType": "ci",
+      "semanticCommitScope": "deps",
+      "commitMessageTopic": "mise in CI"
+    },
+    {
+      "description": "The template test's project config is a fixture, not a dependency.",
+      "matchManagers": ["mise"],
+      "matchFileNames": ["test/**"],
+      "enabled": false
+    },
+    {
+      "description": "Moving to a new Node LTS line is a breaking image change (see CLAUDE.md). Node versioning only counts LTS releases as stable, so non-LTS majors are skipped.",
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["node"],
+      "semanticCommits": "enabled",
+      "commitMessagePrefix": "feat(image)!:",
+      "commitMessageAction": "move",
+      "commitMessageTopic": "Node to",
+      "commitMessageExtra": "{{newMajor}} LTS",
+      "prBodyNotes": [
+        "Before merging: also move the template's `imageVariant` default and proposals in `src/dev/devcontainer-template.json` to the new image major, in this PR."
+      ]
+    }
   ]
 }
