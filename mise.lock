@@ -5,7 +5,7 @@ lockfile_version = 4
 [[tools.node]]
 version = "26.13.0"
 backend = "core:node"
-specifiers = ["lts"]
+specifiers = ["26.13.0"]
 
 [tools.node."platforms.linux-arm64"]
 checksum = "sha256:439e9c438acdf6a6ffe47418da709153d66c4bed812e30a473faacb107dd2791"
@@ -19,7 +19,7 @@ url = "https://nodejs.org/dist/v26.13.0/node-v26.13.0-linux-x64.tar.gz"
 version = "0.90.0"
 aube = { path = ".mise/locks/npm-devcontainers-cli/0.90.0", digest = "sha256:8a8a9e59feed6f3c786e90fcb8b436fec9cf4fa84a33211fc5998570a65501e2" }
 backend = "npm:@devcontainers/cli"
-specifiers = ["latest"]
+specifiers = ["0.90.0"]
 
 [tools."npm:@devcontainers/cli".provenance]
 repository = "github.com/devcontainers/cli"
@@ -27,7 +27,7 @@ repository = "github.com/devcontainers/cli"
 [[tools.shellcheck]]
 version = "0.11.0"
 backend = "aqua:koalaman/shellcheck"
-specifiers = ["latest"]
+specifiers = ["0.11.0"]
 
 [tools.shellcheck."platforms.linux-arm64"]
 checksum = "sha256:12b331c1d2db6b9eb13cfca64306b1b157a86eb69db83023e261eaa7e7c14588"
@@ -44,7 +44,7 @@ url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/2790
 [[tools.zizmor]]
 version = "1.32.0"
 backend = "aqua:zizmorcore/zizmor"
-specifiers = ["latest"]
+specifiers = ["1.32.0"]
 
 [tools.zizmor."platforms.linux-arm64"]
 checksum = "sha256:cb152b207f815116d7fa1c1ee4614f61578803351395052908095e79adfd9fd0"

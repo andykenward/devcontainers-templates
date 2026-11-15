@@ -2,26 +2,17 @@ name: Test
 
 # Lints the scripts and workflows, builds the image locally (amd64) and runs the
 # template against it, including a rebuild to check that the volumes persist.
-# Also called by upgrade-tools.yaml to test bumped tool versions.
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
-  workflow_call:
-    inputs:
-      lock-artifact:
-        description: Artifact from the calling run with mise.lock and .mise/ to test instead of the committed ones
-        type: string
-        required: false
-        default: ""
 
 permissions:
   contents: read
 
 # A new push to a PR cancels that PR's run still in progress: only the newest
-# commit's checks count. Other runs (main, manual, called by upgrade-tools)
-# each get their own group, so they are never cancelled or held back.
+# commit's checks count. Other runs (main, manual) each get their own group, so they are never cancelled or held back.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -34,13 +25,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - if: inputs.lock-artifact != ''
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: ${{ inputs.lock-artifact }}
-
       # Installs the tools in mise.toml and runs the same lint task as locally.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          version: 2026.11.4 # bumped by Renovate (renovate.json)
 
       # GH_TOKEN turns on zizmor's online audits (known-vulnerable actions etc.).
       - run: mise run lint
@@ -54,13 +42,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - if: inputs.lock-artifact != ''
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: ${{ inputs.lock-artifact }}
-
       # Provides the devcontainer CLI from mise.toml.
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          version: 2026.11.4 # bumped by Renovate (renovate.json)
 
       - name: Build image locally
         run: |

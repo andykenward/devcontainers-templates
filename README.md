@@ -53,8 +53,7 @@ Two things follow from that:
 - **Build image** (`build-image.yaml`): builds an image release for amd64 and arm64, runs the template test against both, and only then pushes its tags. It runs on release, every Monday (rebuilding the newest release of the current and previous major) and on demand.
 - **Release templates** (`release-templates.yaml`): publishes the templates to GHCR. It runs on release and on demand.
 - **Dependabot** (`.github/dependabot.yml`): keeps the base image, devcontainer features and actions up to date each week.
-- **Upgrade tools** (`upgrade-tools.yaml`): runs daily. It bumps the repo's mise tools in `mise.lock` (Dependabot can't read mise files), runs lint and the template test with them, and opens or updates a `mise-upgrade` PR when they pass.
-  New releases wait out a 7-day cooldown (`minimum_release_age` in `mise.toml`). For an urgent security fix, lock the exact version yourself with `mise lock <tool>@<version>` (exact versions skip the cooldown) and open a PR.
+- **Renovate** (`renovate.json`): covers what Dependabot can't read. It bumps the repo's mise tools (exact versions in `mise.toml`, with `mise.lock` regenerated), one PR per tool, and proposes the next Node LTS for the image (`ARG NODE_VERSION`) as a breaking change. Like Dependabot, it waits 7 days after a release. For an urgent security fix, set the version in `mise.toml`, run `mise lock <tool>` and open a PR.
 
 After the first publish, set both GHCR packages to **public** under the package settings on GitHub. Otherwise they need `docker login` to pull.
 
@@ -62,7 +61,7 @@ After the first publish, set both GHCR packages to **public** under the package 
 
 - **General → Pull Requests:** allow only **squash merging**, with **Pull request title** as the default commit message.
 - **Rules → Rulesets** for `main`: require a pull request, and require the **PR title** and **Test** status checks.
-- **Optional GitHub App** for the bots: PRs opened with `GITHUB_TOKEN` (the Release PR and the `mise-upgrade` PR) don't trigger other workflows, so required checks never run on them. Create a GitHub App with *Contents* and *Pull requests* read and write, install it on this repo, and add its client ID as the variable `APP_CLIENT_ID` and a private key as the secret `APP_PRIVATE_KEY`. Both workflows then use the App's token. Without it, merge those PRs with a ruleset bypass.
+- **Optional GitHub App** for the bots: PRs opened with `GITHUB_TOKEN` (the Release PR) don't trigger other workflows, so required checks never run on them. Create a GitHub App with *Contents* and *Pull requests* read and write, install it on this repo, and add its client ID as the variable `APP_CLIENT_ID` and a private key as the secret `APP_PRIVATE_KEY`. The Release workflow then uses the App's token. Without it, merge those PRs with a ruleset bypass.
 
 ## Local development
 
