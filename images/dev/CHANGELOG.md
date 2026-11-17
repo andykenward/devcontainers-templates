@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1](https://github.com/andykenward/devcontainers-templates/compare/image-v1.3.0...image-v1.3.1) (2026-11-15)
+
+
+### Bug Fixes
+
+* **image:** wait 7 days before installing new tool releases ([#37](https://github.com/andykenward/devcontainers-templates/issues/37)) ([53a3182](https://github.com/andykenward/devcontainers-templates/commit/53a318281f39354fb8c4bb4005eebd35d74927cf))
+
+
+### Dependencies
+
+* Bump devcontainers/base in /images/dev/.devcontainer ([#34](https://github.com/andykenward/devcontainers-templates/issues/34)) ([357c2ba](https://github.com/andykenward/devcontainers-templates/commit/357c2ba72efdb6fd64931c692bf8b052bb3e324d))
+
 ## [1.3.0](https://github.com/andykenward/devcontainers-templates/compare/image-v1.2.0...image-v1.3.0) (2026-11-08)
 
 
