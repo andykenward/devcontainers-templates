@@ -53,5 +53,11 @@ jobs:
             --workspace-folder images/dev \
             --image-name "ghcr.io/${GITHUB_REPOSITORY_OWNER}/devcontainer-dev:local"
 
+      # Ubuntu 24.04 hosts stop unprivileged processes from mapping user IDs in
+      # a new user namespace, which VS Code's sandbox (unshare) needs even with
+      # the template's sandbox options. See the template README's "Agent sandbox".
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Test template
         run: .github/scripts/test-template.sh dev

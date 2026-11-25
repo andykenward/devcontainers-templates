@@ -11,6 +11,27 @@ check() {
     echo "❌ $label"; echo "$output"; failures=$((failures + 1))
   fi
 }
+finish() {
+  if [ "$failures" -gt 0 ]; then
+    echo "$failures check(s) failed"; exit 1
+  fi
+  echo "All checks passed"
+}
+
+# `test.sh sandbox`: only the agent sandbox checks, in a container started with
+# the template's sandbox options uncommented. These are the namespaces VS Code's
+# and Claude Code's sandboxes create.
+if [ "${1:-}" = sandbox ]; then
+  check "/dev/net/tun is read/write" test -r /dev/net/tun -a -w /dev/net/tun
+  check "bwrap sandbox with every namespace" bwrap --ro-bind / / --dev /dev --proc /proc --unshare-all true
+  check "unshare user and network namespace" unshare --user --map-current-user --keep-caps --net true
+  finish; exit 0
+fi
+
+# Agent sandbox dependencies (from the base image). VS Code won't fall back to
+# running commands unsandboxed when they are missing.
+# shellcheck disable=SC2016 # expand inside bash -c
+check "agent sandbox tools" bash -c 'for b in bwrap socat slirp4netns unshare nsenter iptables ip6tables iptables-restore ip6tables-restore; do command -v "$b" >/dev/null || { echo "missing $b"; exit 1; }; done'
 
 # Non-interactive login shell, like VS Code tasks and Claude Code's Bash tool.
 check "mise"   mise --version
@@ -172,7 +193,4 @@ for dir in "$HOME/.claude" "$HOME/.config/gh" "$HOME/.config/git" "$HOME/.local/
   check "writable $dir" bash -c "touch '$dir/.write-test' && rm '$dir/.write-test'"
 done
 
-if [ "$failures" -gt 0 ]; then
-  echo "$failures check(s) failed"; exit 1
-fi
-echo "All checks passed"
+finish

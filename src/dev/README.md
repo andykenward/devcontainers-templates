@@ -70,6 +70,26 @@ docker volume ls --filter dangling=true
 
 That list also has the shared volumes when no container uses them, and volumes from outside dev containers, so check names before removing any: `docker volume rm <name>`.
 
+## Agent sandbox
+
+VS Code's agent sandbox and Claude Code's sandbox run an agent's terminal commands in their own Linux namespaces. Inside the sandbox, a command can only write to the project and can only reach the network the way you allow. The image includes everything they need (bubblewrap, socat, slirp4netns, util-linux and iptables). But Docker's default settings stop a container from creating namespaces, so the sandboxes only work once you uncomment these two lines in `devcontainer.json`:
+
+```jsonc
+"runArgs": ["--device=/dev/net/tun"],
+"securityOpt": ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"],
+```
+
+Then run **Dev Containers: Rebuild Container**. On a Linux host running Ubuntu 23.10 or later, VS Code's sandbox also needs the host's AppArmor restriction on user namespaces turned off: `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` (that command lasts until reboot; add it to `/etc/sysctl.d/` to keep it). That turns the restriction off for the whole host. Claude Code's sandbox works without the change. Docker Desktop on macOS and Windows doesn't have this restriction.
+
+These options are off by default because they loosen the container's isolation from the host for every process in it, not only for sandboxed commands. Turn them on in projects where you want the sandbox, and leave them off otherwise.
+
+Then turn the sandbox on in whichever agent you use:
+
+- **Claude Code:** add `"sandbox": { "enabled": true }` to the project's `.claude/settings.json`, or run `/sandbox`.
+- **VS Code (Copilot):** set `chat.agent.sandbox.enabled` to `on`, or use **Sandboxing for terminal** in the chat permissions picker. Limit network access with `chat.agent.sandbox.network.allowedDomains`. VS Code won't fall back to running commands outside the sandbox, so with the sandbox on in a container started without the options above, every agent command fails.
+
+The sandbox doesn't replace a separate `volumePrefix` for [untrusted code](#untrusted-code). Sandboxed commands can still read your logins unless you deny those paths, for example with `chat.agent.sandbox.fileSystem.userConfiguredPaths` in VS Code.
+
 ## Prompt
 
 bash and zsh both use the [Starship](https://starship.rs) prompt, configured by the image's `~/.config/starship.toml`. That config updates with image releases. On top of Starship's defaults (git branch and status, runtime versions, command duration), it shows the exit code of a failed command, mise's health and the lines changed in git. It uses symbols that every font has, so no Nerd Font is needed.
