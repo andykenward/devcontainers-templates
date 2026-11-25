@@ -79,7 +79,9 @@ VS Code's agent sandbox and Claude Code's sandbox run an agent's terminal comman
 "securityOpt": ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"],
 ```
 
-Then run **Dev Containers: Rebuild Container**. These options are off by default because they loosen the container's isolation from the host for every process in it, not only for sandboxed commands. Turn them on in projects where you want the sandbox, and leave them off otherwise.
+Then run **Dev Containers: Rebuild Container**. On a Linux host running Ubuntu 23.10 or later, VS Code's sandbox also needs the host's AppArmor restriction on user namespaces turned off: `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` (that command lasts until reboot; add it to `/etc/sysctl.d/` to keep it). That turns the restriction off for the whole host. Claude Code's sandbox works without the change. Docker Desktop on macOS and Windows doesn't have this restriction.
+
+These options are off by default because they loosen the container's isolation from the host for every process in it, not only for sandboxed commands. Turn them on in projects where you want the sandbox, and leave them off otherwise.
 
 Then turn the sandbox on in whichever agent you use:
 
