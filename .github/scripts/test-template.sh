@@ -85,3 +85,10 @@ exec_in bash -c '
   done
   [ "$(git config --get test.persisted)" = yes ] || { echo "❌ git config did not persist"; exit 1; }' _ "${dirs[@]}"
 echo "✅ volumes persisted across rebuild: ${dirs[*]}"
+
+echo "--- recreating with the agent sandbox options uncommented"
+sed -i -E 's#^([[:space:]]*)// ("runArgs"|"securityOpt")#\1\2#' "$config"
+[ "$(grep -cE '^[[:space:]]*"(runArgs|securityOpt)"' "$config")" -eq 2 ] ||
+  { echo "❌ sandbox options not found in $config"; exit 1; }
+up --remove-existing-container
+exec_in bash ./test-project/test.sh sandbox

@@ -22,6 +22,13 @@
   // SSH agent has a key, so git uses SSH instead).
   "postCreateCommand": "devcontainer-post-create",
 
+  // Agent sandbox: uncomment both lines so VS Code's and Claude Code's sandboxes
+  // can run agent commands in their own namespaces (see the README's "Agent
+  // sandbox"). Off by default: they loosen the container's isolation from the
+  // host for every process in it, not only the sandboxed ones.
+  // "runArgs": ["--device=/dev/net/tun"],
+  // "securityOpt": ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"],
+
   // Starship prompt config. Until the project adds .devcontainer/starship.toml
   // (start from a copy: cp ~/.config/starship.toml .devcontainer/), the image's
   // default is used. New terminals pick up changes without a rebuild.
