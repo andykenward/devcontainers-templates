@@ -28,7 +28,7 @@ jobs:
       # Installs the tools in mise.toml and runs the same lint task as locally.
       - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
         with:
-          version: 2026.11.8 # bumped by Renovate (renovate.json)
+          version: 2026.11.12 # bumped by Renovate (renovate.json)
 
       # GH_TOKEN turns on zizmor's online audits (known-vulnerable actions etc.).
       - run: mise run lint
@@ -45,7 +45,7 @@ jobs:
       # Provides the devcontainer CLI from mise.toml.
       - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
         with:
-          version: 2026.11.8 # bumped by Renovate (renovate.json)
+          version: 2026.11.12 # bumped by Renovate (renovate.json)
 
       - name: Build image locally
         run: |
